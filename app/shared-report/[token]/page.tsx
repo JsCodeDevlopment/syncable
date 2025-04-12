@@ -1,3 +1,6 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import { getSharedReport } from "@/app/actions/reports"
 import { formatDuration } from "@/lib/db"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -6,24 +9,58 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 
-export default async function SharedReportPage({ params }: { params: { token: string } }) {
+export default function SharedReportPage({ params }: { params: { token: string } }) {
   const { token } = params
-  const result = await getSharedReport(token)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [reportData, setReportData] = useState<any>(null)
+  const [report, setReport] = useState<any>(null)
 
-  if (!result.success) {
+  useEffect(() => {
+    const fetchReport = async () => {
+      try {
+        const result = await getSharedReport(token)
+
+        if (!result.success) {
+          setError(result.error || "This shared report is not available or has expired.")
+        } else {
+          setReport(result.data.report)
+          setReportData(result.data.reportData)
+        }
+      } catch (err) {
+        setError("Failed to load the shared report.")
+        console.error("Error fetching shared report:", err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchReport()
+  }, [token])
+
+  if (isLoading) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center p-4">
         <div className="w-full max-w-md space-y-4 text-center">
-          <h1 className="text-2xl font-bold">Report Not Available</h1>
-          <p className="text-muted-foreground">
-            {result.error || "This shared report is not available or has expired."}
-          </p>
+          <h1 className="text-2xl font-bold">Loading Report</h1>
+          <div className="flex justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
         </div>
       </div>
     )
   }
 
-  const { report, reportData } = result.data
+  if (error) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center p-4">
+        <div className="w-full max-w-md space-y-4 text-center">
+          <h1 className="text-2xl font-bold">Report Not Available</h1>
+          <p className="text-muted-foreground">{error}</p>
+        </div>
+      </div>
+    )
+  }
 
   // Process data for the chart
   const chartData = reportData.entries.map((entry: any) => ({
@@ -37,7 +74,8 @@ export default async function SharedReportPage({ params }: { params: { token: st
       <header className="border-b">
         <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
           <div className="flex items-center">
-            <h1 className="text-xl font-bold">TimeKeeper</h1>
+            <img src="/images/syncable-logo.png" alt="Syncable Logo" className="h-8 mr-2" />
+            <h1 className="text-xl font-bold">Syncable</h1>
           </div>
         </div>
       </header>
@@ -159,7 +197,7 @@ export default async function SharedReportPage({ params }: { params: { token: st
       </main>
       <footer className="border-t py-6">
         <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row">
-          <p className="text-sm text-gray-500">© 2025 TimeKeeper. All rights reserved.</p>
+          <p className="text-sm text-gray-500">© 2025 Syncable. All rights reserved.</p>
         </div>
       </footer>
     </div>

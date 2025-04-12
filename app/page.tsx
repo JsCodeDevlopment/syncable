@@ -8,7 +8,7 @@ export default function Home() {
       <header className="border-b">
         <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
           <div className="flex items-center">
-            <h1 className="text-xl font-bold">TimeKeeper</h1>
+            <h1 className="text-xl font-bold">Syncable</h1>
           </div>
           <div className="ml-auto flex items-center gap-4">
             <Link href="/login">
@@ -143,7 +143,7 @@ export default function Home() {
       </main>
       <footer className="border-t py-6 md:py-0">
         <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row px-4 sm:px-6 lg:px-8">
-          <p className="text-sm text-gray-500 dark:text-gray-400">© 2025 TimeKeeper. All rights reserved.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">© 2025 Syncable. All rights reserved.</p>
           <div className="flex gap-4 text-sm text-gray-500 dark:text-gray-400">
             <Link href="/terms" className="hover:underline">
               Terms

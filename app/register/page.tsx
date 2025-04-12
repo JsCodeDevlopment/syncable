@@ -56,6 +56,9 @@ export default function RegisterPage() {
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
+          <div className="flex justify-center mb-4">
+            <img src="/images/syncable-logo.png" alt="Syncable Logo" className="h-12" />
+          </div>
           <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
           <CardDescription>Enter your information to create an account</CardDescription>
         </CardHeader>
