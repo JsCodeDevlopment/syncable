@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -10,10 +11,11 @@ export function MainNav() {
   return (
     <div className="flex gap-6 md:gap-10">
       <Link href="/dashboard" className="flex items-center space-x-2">
-        <img
+        <Image
           src="/images/syncable-logo.png"
           alt="Syncable Logo"
-          className="h-8"
+          width={120}
+          height={100}
         />
       </Link>
       <nav className="flex gap-6">

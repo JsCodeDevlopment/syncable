@@ -1,6 +1,7 @@
-import { Button } from "@/components/ui/button"
-import { ArrowRight } from "lucide-react"
-import Link from "next/link"
+import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -8,7 +9,12 @@ export default function Home() {
       <header className="border-b">
         <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
           <div className="flex items-center">
-            <h1 className="text-xl font-bold">Syncable</h1>
+            <Image
+              src="/images/syncable-logo.png"
+              alt="Syncable Logo"
+              width={120}
+              height={100}
+            />
           </div>
           <div className="ml-auto flex items-center gap-4">
             <Link href="/login">
@@ -30,8 +36,8 @@ export default function Home() {
                     Track Your Time Effortlessly
                   </h2>
                   <p className="text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
-                    Log entries, breaks, and exits with precision. Monitor your productivity with daily, weekly, and
-                    monthly insights.
+                    Log entries, breaks, and exits with precision. Monitor your
+                    productivity with daily, weekly, and monthly insights.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
@@ -77,7 +83,9 @@ export default function Home() {
                           </svg>
                         </div>
                         <div className="space-y-1">
-                          <h4 className="text-base font-medium">Precise Time Tracking</h4>
+                          <h4 className="text-base font-medium">
+                            Precise Time Tracking
+                          </h4>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
                             Log entries, breaks, and exits with accuracy
                           </p>
@@ -101,9 +109,12 @@ export default function Home() {
                           </svg>
                         </div>
                         <div className="space-y-1">
-                          <h4 className="text-base font-medium">Detailed Reports</h4>
+                          <h4 className="text-base font-medium">
+                            Detailed Reports
+                          </h4>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Generate and download reports filtered by day, week, or month
+                            Generate and download reports filtered by day, week,
+                            or month
                           </p>
                         </div>
                       </div>
@@ -127,7 +138,9 @@ export default function Home() {
                           </svg>
                         </div>
                         <div className="space-y-1">
-                          <h4 className="text-base font-medium">Shareable Insights</h4>
+                          <h4 className="text-base font-medium">
+                            Shareable Insights
+                          </h4>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
                             Share your progress through public links
                           </p>
@@ -143,7 +156,9 @@ export default function Home() {
       </main>
       <footer className="border-t py-6 md:py-0">
         <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row px-4 sm:px-6 lg:px-8">
-          <p className="text-sm text-gray-500 dark:text-gray-400">© 2025 Syncable. All rights reserved.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            © 2025 Syncable. All rights reserved.
+          </p>
           <div className="flex gap-4 text-sm text-gray-500 dark:text-gray-400">
             <Link href="/terms" className="hover:underline">
               Terms
@@ -155,5 +170,5 @@ export default function Home() {
         </div>
       </footer>
     </div>
-  )
+  );
 }

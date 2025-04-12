@@ -20,6 +20,7 @@ export default function SettingsPage() {
   const [userId, setUserId] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [authError, setAuthError] = useState<string | null>(null)
 
   // Profile settings
   const [name, setName] = useState("")
@@ -50,7 +51,8 @@ export default function SettingsPage() {
     const userIdFromCookie = getCookieValue("user_id")
 
     if (!userIdFromCookie) {
-      router.push("/login")
+      setAuthError("You must be logged in to access settings")
+      setIsLoading(false)
       return
     }
 
@@ -85,11 +87,7 @@ export default function SettingsPage() {
         }
       } catch (error) {
         console.error("Error loading settings:", error)
-        toast({
-          title: "Error",
-          description: "An unexpected error occurred",
-          variant: "destructive",
-        })
+        setAuthError("Failed to load settings. You may need to log in again.")
       } finally {
         setIsLoading(false)
       }
@@ -199,6 +197,27 @@ export default function SettingsPage() {
     } finally {
       setIsSaving(false)
     }
+  }
+
+  if (authError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-4 py-12">
+        <Card className="w-full max-w-md">
+          <CardHeader className="space-y-1">
+            <div className="flex justify-center mb-4">
+              <img src="/images/syncable-logo.png" alt="Syncable Logo" className="h-12" />
+            </div>
+            <CardTitle className="text-2xl font-bold">Authentication Error</CardTitle>
+            <CardDescription>{authError}</CardDescription>
+          </CardHeader>
+          <CardFooter className="flex flex-col space-y-4">
+            <Button onClick={() => router.push("/login")} className="w-full">
+              Go to Login
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    )
   }
 
   if (isLoading) {

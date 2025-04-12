@@ -19,30 +19,49 @@ export function TimeTracker({ userId }: { userId: number }) {
   const [breakTime, setBreakTime] = useState<number>(0)
   const [totalBreakTime, setTotalBreakTime] = useState<number>(0)
   const [isLoading, setIsLoading] = useState(false)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
+
+  // Create a custom event to notify other components when time entries change
+  const triggerRefresh = () => {
+    setRefreshTrigger((prev) => prev + 1)
+    // Dispatch a custom event that other components can listen for
+    const event = new CustomEvent("timeEntryUpdated")
+    window.dispatchEvent(event)
+    console.log("Dispatched timeEntryUpdated event")
+  }
 
   // Check for active time entry on component mount
   useEffect(() => {
     const checkActiveTimeEntry = async () => {
-      const result = await getActiveTimeEntry(userId)
+      try {
+        const result = await getActiveTimeEntry(userId)
 
-      if (result.success && result.data) {
-        const { timeEntry, activeBreak } = result.data
+        if (result.success && result.data) {
+          const { timeEntry, activeBreak } = result.data
 
-        setActiveTimeEntryId(timeEntry.id)
-        setStartTime(new Date(timeEntry.start_time))
+          setActiveTimeEntryId(timeEntry.id)
+          setStartTime(new Date(timeEntry.start_time))
 
-        if (activeBreak) {
-          setStatus("break")
-          setActiveBreakId(activeBreak.id)
-          setBreakStartTime(new Date(activeBreak.start_time))
-        } else {
-          setStatus("working")
+          if (activeBreak) {
+            setStatus("break")
+            setActiveBreakId(activeBreak.id)
+            setBreakStartTime(new Date(activeBreak.start_time))
+          } else {
+            setStatus("working")
+          }
         }
+      } catch (error) {
+        console.error("Error checking active time entry:", error)
+        toast({
+          title: "Error",
+          description: "Failed to check active time entries. Please refresh the page.",
+          variant: "destructive",
+        })
       }
     }
 
     checkActiveTimeEntry()
-  }, [userId])
+  }, [userId, refreshTrigger])
 
   // Update elapsed time
   useEffect(() => {
@@ -78,10 +97,11 @@ export function TimeTracker({ userId }: { userId: number }) {
         setElapsedTime(0)
         setBreakTime(0)
         setTotalBreakTime(0)
+        triggerRefresh() // Trigger refresh after starting work
       } else {
         toast({
           title: "Error",
-          description: result.error,
+          description: result.error || "Failed to start working",
           variant: "destructive",
         })
       }
@@ -109,10 +129,11 @@ export function TimeTracker({ userId }: { userId: number }) {
         setStatus("break")
         setActiveBreakId(result.data.id)
         setBreakStartTime(new Date(result.data.start_time))
+        triggerRefresh() // Trigger refresh after starting break
       } else {
         toast({
           title: "Error",
-          description: result.error,
+          description: result.error || "Failed to start break",
           variant: "destructive",
         })
       }
@@ -143,10 +164,11 @@ export function TimeTracker({ userId }: { userId: number }) {
         setTotalBreakTime(totalBreakTime + breakDuration)
         setBreakTime(0)
         setBreakStartTime(null)
+        triggerRefresh() // Trigger refresh after resuming work
       } else {
         toast({
           title: "Error",
-          description: result.error,
+          description: result.error || "Failed to resume working",
           variant: "destructive",
         })
       }
@@ -185,6 +207,9 @@ export function TimeTracker({ userId }: { userId: number }) {
         setBreakTime(0)
         setTotalBreakTime(0)
 
+        // Trigger refresh after ending day
+        triggerRefresh()
+
         toast({
           title: "Success",
           description: "Your workday has been successfully recorded.",
@@ -192,7 +217,7 @@ export function TimeTracker({ userId }: { userId: number }) {
       } else {
         toast({
           title: "Error",
-          description: result.error,
+          description: result.error || "Failed to end your workday",
           variant: "destructive",
         })
       }
@@ -210,26 +235,7 @@ export function TimeTracker({ userId }: { userId: number }) {
 
   const refreshData = () => {
     // Refresh active time entry data after manual entry
-    const checkActiveTimeEntry = async () => {
-      const result = await getActiveTimeEntry(userId)
-
-      if (result.success && result.data) {
-        const { timeEntry, activeBreak } = result.data
-
-        setActiveTimeEntryId(timeEntry.id)
-        setStartTime(new Date(timeEntry.start_time))
-
-        if (activeBreak) {
-          setStatus("break")
-          setActiveBreakId(activeBreak.id)
-          setBreakStartTime(new Date(activeBreak.start_time))
-        } else {
-          setStatus("working")
-        }
-      }
-    }
-
-    checkActiveTimeEntry()
+    triggerRefresh()
   }
 
   return (

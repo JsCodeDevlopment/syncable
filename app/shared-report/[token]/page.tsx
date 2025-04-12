@@ -19,7 +19,9 @@ export default function SharedReportPage({ params }: { params: { token: string }
   useEffect(() => {
     const fetchReport = async () => {
       try {
+        console.log("Fetching shared report with token:", token)
         const result = await getSharedReport(token)
+        console.log("Shared report result:", result)
 
         if (!result.success) {
           setError(result.error || "This shared report is not available or has expired.")
@@ -28,8 +30,8 @@ export default function SharedReportPage({ params }: { params: { token: string }
           setReportData(result.data.reportData)
         }
       } catch (err) {
-        setError("Failed to load the shared report.")
         console.error("Error fetching shared report:", err)
+        setError("Failed to load the shared report. Please check the URL and try again.")
       } finally {
         setIsLoading(false)
       }
@@ -62,6 +64,49 @@ export default function SharedReportPage({ params }: { params: { token: string }
     )
   }
 
+  // Check if we have valid report data
+  if (!reportData || !reportData.entries || !Array.isArray(reportData.entries) || reportData.entries.length === 0) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <header className="border-b">
+          <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center">
+              <h1 className="text-xl font-bold">Syncable</h1>
+            </div>
+          </div>
+        </header>
+        <main className="flex-1">
+          <div className="container py-6">
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold">Shared Time Report</h1>
+              <p className="text-muted-foreground">
+                {report.report_type.charAt(0).toUpperCase() + report.report_type.slice(1)} report from{" "}
+                {new Date(report.start_date).toLocaleDateString()} to {new Date(report.end_date).toLocaleDateString()}
+              </p>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>No Data Available</CardTitle>
+                <CardDescription>This report doesn't contain any time entries for the selected period.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-center py-8 text-muted-foreground">
+                  No time entries were found for this report period.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+        <footer className="border-t py-6">
+          <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row">
+            <p className="text-sm text-gray-500">© 2025 Syncable. All rights reserved.</p>
+          </div>
+        </footer>
+      </div>
+    )
+  }
+
   // Process data for the chart
   const chartData = reportData.entries.map((entry: any) => ({
     date: entry.date,
@@ -74,7 +119,6 @@ export default function SharedReportPage({ params }: { params: { token: string }
       <header className="border-b">
         <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
           <div className="flex items-center">
-            <img src="/images/syncable-logo.png" alt="Syncable Logo" className="h-8 mr-2" />
             <h1 className="text-xl font-bold">Syncable</h1>
           </div>
         </div>

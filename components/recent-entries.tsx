@@ -43,6 +43,7 @@ export function RecentEntries({ userId }: { userId: number }) {
   const [isLoading, setIsLoading] = useState(true)
   const [entryToDelete, setEntryToDelete] = useState<number | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0) // Add a refresh key for forcing re-renders
 
   const fetchEntries = async () => {
     setIsLoading(true)
@@ -50,17 +51,53 @@ export function RecentEntries({ userId }: { userId: number }) {
       const result = await getRecentTimeEntries(userId)
       if (result.success) {
         setEntries(result.data)
+      } else {
+        console.error("Error fetching entries:", result.error)
+        toast({
+          title: "Error",
+          description: "Failed to load recent entries. Please try refreshing the page.",
+          variant: "destructive",
+        })
       }
     } catch (error) {
       console.error("Error fetching recent entries:", error)
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while loading entries.",
+        variant: "destructive",
+      })
     } finally {
       setIsLoading(false)
     }
   }
 
+  // Listen for the custom event from TimeTracker
+  useEffect(() => {
+    const handleTimeEntryUpdate = () => {
+      console.log("Time entry updated event received, refreshing entries")
+      fetchEntries()
+    }
+
+    // Add event listener
+    window.addEventListener("timeEntryUpdated", handleTimeEntryUpdate)
+
+    // Clean up
+    return () => {
+      window.removeEventListener("timeEntryUpdated", handleTimeEntryUpdate)
+    }
+  }, [userId])
+
+  // Initial fetch and polling
   useEffect(() => {
     fetchEntries()
-  }, [userId])
+
+    // Set up polling every 30 seconds
+    const intervalId = setInterval(() => {
+      fetchEntries()
+    }, 30000)
+
+    return () => clearInterval(intervalId)
+  }, [userId, refreshKey])
 
   const handleDeleteEntry = async () => {
     if (!entryToDelete) return
@@ -73,7 +110,7 @@ export function RecentEntries({ userId }: { userId: number }) {
           title: "Entry deleted",
           description: "The time entry has been deleted successfully.",
         })
-        fetchEntries()
+        fetchEntries() // Refresh the entries after deletion
       } else {
         toast({
           title: "Error",
@@ -92,6 +129,12 @@ export function RecentEntries({ userId }: { userId: number }) {
       setIsDeleting(false)
       setEntryToDelete(null)
     }
+  }
+
+  // Add a refresh method that can be called from parent components
+  const refreshEntries = () => {
+    setRefreshKey((prev) => prev + 1) // Increment refresh key to force re-render
+    fetchEntries()
   }
 
   const formatDate = (dateString: string) => {
@@ -121,7 +164,7 @@ export function RecentEntries({ userId }: { userId: number }) {
     })
   }
 
-  if (isLoading) {
+  if (isLoading && entries.length === 0) {
     return (
       <div className="flex items-center justify-center h-[300px]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -170,7 +213,7 @@ export function RecentEntries({ userId }: { userId: number }) {
                     initialStartTime={startTime}
                     initialEndTime={endTime}
                     breaks={formattedBreaks}
-                    onSuccess={fetchEntries}
+                    onSuccess={refreshEntries}
                   />
                   <AlertDialog>
                     <AlertDialogTrigger asChild>

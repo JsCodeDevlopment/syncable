@@ -58,6 +58,29 @@ export default function ReportsPage() {
     }
   }, [])
 
+  // Update date range when period changes
+  useEffect(() => {
+    const today = new Date()
+
+    // Set end date to today for all periods
+    setEndDate(today)
+
+    if (activeTab === "daily") {
+      // For daily, start date is also today
+      setStartDate(today)
+    } else if (activeTab === "weekly") {
+      // For weekly, start date is 7 days ago
+      const weekAgo = new Date(today)
+      weekAgo.setDate(today.getDate() - 6) // 7 days including today
+      setStartDate(weekAgo)
+    } else if (activeTab === "monthly") {
+      // For monthly, start date is 30 days ago
+      const monthAgo = new Date(today)
+      monthAgo.setDate(today.getDate() - 29) // 30 days including today
+      setStartDate(monthAgo)
+    }
+  }, [activeTab])
+
   const handleGenerateReport = async () => {
     if (!userId || !startDate || !endDate) {
       toast({
@@ -69,9 +92,18 @@ export default function ReportsPage() {
     }
 
     setIsGenerating(true)
+    setReportData(null) // Clear previous report data
 
     try {
+      console.log("Generating report for:", {
+        userId,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        activeTab,
+      })
+
       const result = await generateReport(userId, startDate, endDate, activeTab)
+      console.log("Report generation result:", result)
 
       if (result.success) {
         setReportData(result.data)

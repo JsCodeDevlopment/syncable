@@ -43,6 +43,17 @@ export async function generateReport(
   reportType: string,
 ): Promise<{ success: boolean; data?: ReportData; error?: string }> {
   try {
+    console.log("Generating report for user:", userId, "from", startDate, "to", endDate, "type:", reportType)
+
+    // Adjust the end date to include the entire day
+    const adjustedEndDate = new Date(endDate)
+    adjustedEndDate.setHours(23, 59, 59, 999)
+
+    console.log("Adjusted date range:", {
+      startDate: startDate.toISOString(),
+      adjustedEndDate: adjustedEndDate.toISOString(),
+    })
+
     // Get time entries in the date range
     const entriesResult = await sql`
       SELECT 
@@ -61,9 +72,11 @@ export async function generateReport(
         te.user_id = ${userId} AND 
         te.status = 'completed' AND
         te.start_time >= ${startDate} AND 
-        te.start_time <= ${endDate}
+        te.start_time <= ${adjustedEndDate}
       ORDER BY te.start_time DESC
     `
+
+    console.log("Found entries:", entriesResult.length)
 
     // Format the entries
     const entries = entriesResult.map((entry) => {
@@ -108,7 +121,7 @@ export async function generateReport(
     }
   } catch (error) {
     console.error("Error generating report:", error)
-    return { success: false, error: "Failed to generate report" }
+    return { success: false, error: "Failed to generate report. Database error." }
   }
 }
 
@@ -121,11 +134,42 @@ export async function createSharedReport(
   expiresInDays: number,
 ): Promise<{ success: boolean; data?: SharedReport; error?: string }> {
   try {
+    console.log("Creating shared report for user:", userId, "type:", reportType, "expires in:", expiresInDays, "days")
+
     // Generate a unique token
     const shareToken = crypto.randomBytes(8).toString("hex")
 
     // Calculate expiration date
     const expiresAt = expiresInDays > 0 ? new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000) : null
+
+    // Check if the shared_reports table exists
+    const tableCheck = await sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'shared_reports'
+      );
+    `
+
+    const tableExists = tableCheck[0].exists
+
+    if (!tableExists) {
+      console.log("Creating shared_reports table")
+      // Create the table if it doesn't exist
+      await sql`
+        CREATE TABLE shared_reports (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id),
+          share_token TEXT NOT NULL UNIQUE,
+          report_type TEXT NOT NULL,
+          start_date TIMESTAMP WITH TIME ZONE NOT NULL,
+          end_date TIMESTAMP WITH TIME ZONE NOT NULL,
+          expires_at TIMESTAMP WITH TIME ZONE,
+          created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+        );
+      `
+    }
 
     const result = await sql`
       INSERT INTO shared_reports (
@@ -147,10 +191,11 @@ export async function createSharedReport(
       RETURNING *
     `
 
+    console.log("Shared report created:", result[0])
     return { success: true, data: result[0] as SharedReport }
   } catch (error) {
     console.error("Error creating shared report:", error)
-    return { success: false, error: "Failed to create shared report" }
+    return { success: false, error: "Failed to create shared report. Database error." }
   }
 }
 
@@ -159,6 +204,24 @@ export async function getSharedReport(
   shareToken: string,
 ): Promise<{ success: boolean; data?: { report: SharedReport; reportData: ReportData }; error?: string }> {
   try {
+    console.log("Getting shared report with token:", shareToken)
+
+    // Check if the shared_reports table exists
+    const tableCheck = await sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'shared_reports'
+      );
+    `
+
+    const tableExists = tableCheck[0].exists
+
+    if (!tableExists) {
+      console.log("shared_reports table does not exist")
+      return { success: false, error: "Shared report not found" }
+    }
+
     // Get the shared report
     const reportResult = await sql`
       SELECT *
@@ -167,13 +230,16 @@ export async function getSharedReport(
     `
 
     if (reportResult.length === 0) {
+      console.log("No shared report found with token:", shareToken)
       return { success: false, error: "Shared report not found" }
     }
 
     const report = reportResult[0] as SharedReport
+    console.log("Found shared report:", report)
 
     // Check if the report has expired
     if (report.expires_at && new Date(report.expires_at) < new Date()) {
+      console.log("Shared report has expired")
       return { success: false, error: "Shared report has expired" }
     }
 
@@ -186,9 +252,11 @@ export async function getSharedReport(
     )
 
     if (!reportDataResult.success) {
+      console.log("Failed to generate report data:", reportDataResult.error)
       return { success: false, error: reportDataResult.error }
     }
 
+    console.log("Generated report data successfully")
     return {
       success: true,
       data: {
@@ -198,7 +266,7 @@ export async function getSharedReport(
     }
   } catch (error) {
     console.error("Error getting shared report:", error)
-    return { success: false, error: "Failed to get shared report" }
+    return { success: false, error: "Failed to get shared report. Database error." }
   }
 }
 
@@ -207,6 +275,21 @@ export async function getUserSharedReports(
   userId: number,
 ): Promise<{ success: boolean; data?: SharedReport[]; error?: string }> {
   try {
+    // Check if the shared_reports table exists
+    const tableCheck = await sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'shared_reports'
+      );
+    `
+
+    const tableExists = tableCheck[0].exists
+
+    if (!tableExists) {
+      return { success: true, data: [] }
+    }
+
     const result = await sql`
       SELECT *
       FROM shared_reports
@@ -217,7 +300,7 @@ export async function getUserSharedReports(
     return { success: true, data: result as SharedReport[] }
   } catch (error) {
     console.error("Error getting user shared reports:", error)
-    return { success: false, error: "Failed to get user shared reports" }
+    return { success: false, error: "Failed to get user shared reports. Database error." }
   }
 }
 
@@ -246,6 +329,6 @@ export async function deleteSharedReport(
     return { success: true }
   } catch (error) {
     console.error("Error deleting shared report:", error)
-    return { success: false, error: "Failed to delete shared report" }
+    return { success: false, error: "Failed to delete shared report. Database error." }
   }
 }
