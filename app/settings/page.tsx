@@ -1,203 +1,212 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { DashboardHeader } from "@/components/dashboard-header"
-import { DashboardShell } from "@/components/dashboard-shell"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
-import { getUserSettings, updateUserSettings } from "../actions/user-settings"
-import { toast } from "@/components/ui/use-toast"
-import { useRouter } from "next/navigation"
+import { DashboardHeader } from "@/components/dashboard-header";
+import { DashboardShell } from "@/components/dashboard-shell";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "@/components/ui/use-toast";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { getCurrentUser } from "../actions/auth";
+import { getUserSettings, updateUserSettings } from "../actions/user-settings";
 
 export default function SettingsPage() {
-  const router = useRouter()
-  const [userId, setUserId] = useState<number | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
-  const [authError, setAuthError] = useState<string | null>(null)
+  const router = useRouter();
+  const [userId, setUserId] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   // Profile settings
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
 
   // Time tracking settings
-  const [workingHours, setWorkingHours] = useState("8")
-  const [timezone, setTimezone] = useState("UTC")
-  const [autoBreak, setAutoBreak] = useState(false)
+  const [workingHours, setWorkingHours] = useState("8");
+  const [timezone, setTimezone] = useState("UTC");
+  const [autoBreak, setAutoBreak] = useState(false);
 
   // Notification settings
-  const [notifications, setNotifications] = useState(true)
-  const [emailNotifications, setEmailNotifications] = useState(true)
-  const [notificationEmail, setNotificationEmail] = useState("")
+  const [notifications, setNotifications] = useState(true);
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [notificationEmail, setNotificationEmail] = useState("");
 
   // Sharing settings
-  const [shareReports, setShareReports] = useState(false)
-  const [shareDuration, setShareDuration] = useState("7")
+  const [shareReports, setShareReports] = useState(false);
+  const [shareDuration, setShareDuration] = useState("7");
 
   useEffect(() => {
-    // Get user ID from cookie
-    const getCookieValue = (name: string) => {
-      const value = `; ${document.cookie}`
-      const parts = value.split(`; ${name}=`)
-      if (parts.length === 2) return parts.pop()?.split(";").shift()
-    }
-
-    const userIdFromCookie = getCookieValue("user_id")
-
-    if (!userIdFromCookie) {
-      setAuthError("You must be logged in to access settings")
-      setIsLoading(false)
-      return
-    }
-
-    setUserId(Number.parseInt(userIdFromCookie))
-
-    // Load user settings
-    const loadSettings = async () => {
+    // Get user ID from cookie and check authentication
+    const checkAuth = async () => {
       try {
-        const result = await getUserSettings(Number.parseInt(userIdFromCookie))
+        const user = await getCurrentUser();
+
+        if (!user) {
+          setAuthError("You must be logged in to access settings");
+          setIsLoading(false);
+          return;
+        }
+
+        setUserId(user.id);
+
+        // Load user settings
+        const result = await getUserSettings(user.id);
 
         if (result.success) {
-          const settings = result.data
+          const settings = result.data;
 
           // Set time tracking settings
-          setWorkingHours(settings.working_hours.toString())
-          setTimezone(settings.timezone)
-          setAutoBreak(settings.auto_detect_breaks)
+          setWorkingHours(settings.working_hours.toString());
+          setTimezone(settings.timezone);
+          setAutoBreak(settings.auto_detect_breaks);
 
           // Set notification settings
-          setNotifications(settings.enable_notifications)
-          setEmailNotifications(settings.enable_email_notifications)
+          setNotifications(settings.enable_notifications);
+          setEmailNotifications(settings.enable_email_notifications);
 
           // Set sharing settings
-          setShareReports(settings.allow_sharing)
-          setShareDuration(settings.share_duration_days.toString())
+          setShareReports(settings.allow_sharing);
+          setShareDuration(settings.share_duration_days.toString());
         } else {
           toast({
             title: "Error",
             description: result.error || "Failed to load settings",
             variant: "destructive",
-          })
+          });
         }
       } catch (error) {
-        console.error("Error loading settings:", error)
-        setAuthError("Failed to load settings. You may need to log in again.")
+        console.error("Error loading settings:", error);
+        setAuthError("Failed to load settings. You may need to log in again.");
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    loadSettings()
-  }, [router])
+    checkAuth();
+  }, [router]);
 
   const handleSaveGeneralSettings = async () => {
-    if (!userId) return
+    if (!userId) return;
 
-    setIsSaving(true)
+    setIsSaving(true);
     try {
       const result = await updateUserSettings(userId, {
         working_hours: Number.parseInt(workingHours),
         timezone,
         auto_detect_breaks: autoBreak,
-      })
+      });
 
       if (result.success) {
         toast({
           title: "Settings saved",
           description: "Your general settings have been updated successfully.",
-        })
+        });
       } else {
         toast({
           title: "Error",
           description: result.error || "Failed to save settings",
           variant: "destructive",
-        })
+        });
       }
     } catch (error) {
-      console.error("Error saving settings:", error)
+      console.error("Error saving settings:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
   const handleSaveNotificationSettings = async () => {
-    if (!userId) return
+    if (!userId) return;
 
-    setIsSaving(true)
+    setIsSaving(true);
     try {
       const result = await updateUserSettings(userId, {
         enable_notifications: notifications,
         enable_email_notifications: emailNotifications,
-      })
+      });
 
       if (result.success) {
         toast({
           title: "Settings saved",
-          description: "Your notification settings have been updated successfully.",
-        })
+          description:
+            "Your notification settings have been updated successfully.",
+        });
       } else {
         toast({
           title: "Error",
           description: result.error || "Failed to save settings",
           variant: "destructive",
-        })
+        });
       }
     } catch (error) {
-      console.error("Error saving settings:", error)
+      console.error("Error saving settings:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
   const handleSaveSharingSettings = async () => {
-    if (!userId) return
+    if (!userId) return;
 
-    setIsSaving(true)
+    setIsSaving(true);
     try {
       const result = await updateUserSettings(userId, {
         allow_sharing: shareReports,
         share_duration_days: Number.parseInt(shareDuration),
-      })
+      });
 
       if (result.success) {
         toast({
           title: "Settings saved",
           description: "Your sharing settings have been updated successfully.",
-        })
+        });
       } else {
         toast({
           title: "Error",
           description: result.error || "Failed to save settings",
           variant: "destructive",
-        })
+        });
       }
     } catch (error) {
-      console.error("Error saving settings:", error)
+      console.error("Error saving settings:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
   if (authError) {
     return (
@@ -205,9 +214,11 @@ export default function SettingsPage() {
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1">
             <div className="flex justify-center mb-4">
-              <img src="/images/syncable-logo.png" alt="Syncable Logo" className="h-12" />
+              <h1 className="text-2xl font-bold">Syncable</h1>
             </div>
-            <CardTitle className="text-2xl font-bold">Authentication Error</CardTitle>
+            <CardTitle className="text-2xl font-bold">
+              Authentication Error
+            </CardTitle>
             <CardDescription>{authError}</CardDescription>
           </CardHeader>
           <CardFooter className="flex flex-col space-y-4">
@@ -217,7 +228,7 @@ export default function SettingsPage() {
           </CardFooter>
         </Card>
       </div>
-    )
+    );
   }
 
   if (isLoading) {
@@ -228,12 +239,15 @@ export default function SettingsPage() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
       </DashboardShell>
-    )
+    );
   }
 
   return (
     <DashboardShell>
-      <DashboardHeader heading="Settings" text="Manage your account settings and preferences" />
+      <DashboardHeader
+        heading="Settings"
+        text="Manage your account settings and preferences"
+      />
 
       <Tabs defaultValue="general">
         <TabsList className="grid w-full grid-cols-3">
@@ -242,8 +256,11 @@ export default function SettingsPage() {
           <TabsTrigger value="sharing">Sharing</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="general" className="space-y-4 pt-4">
-          <Card>
+        <TabsContent
+          value="general"
+          className="flex flex-col items-center justify-between mt-3 gap-5 md:flex-row"
+        >
+          <Card className="flex-1 h-96 w-full">
             <CardHeader>
               <CardTitle>Profile Information</CardTitle>
               <CardDescription>Update your profile information</CardDescription>
@@ -255,7 +272,11 @@ export default function SettingsPage() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" defaultValue="john.doe@example.com" />
+                <Input
+                  id="email"
+                  type="email"
+                  defaultValue="john.doe@example.com"
+                />
               </div>
             </CardContent>
             <CardFooter>
@@ -263,10 +284,12 @@ export default function SettingsPage() {
             </CardFooter>
           </Card>
 
-          <Card>
+          <Card className="flex-1 h-96 w-full">
             <CardHeader>
               <CardTitle>Time Tracking Settings</CardTitle>
-              <CardDescription>Configure your time tracking preferences</CardDescription>
+              <CardDescription>
+                Configure your time tracking preferences
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-2">
@@ -292,15 +315,27 @@ export default function SettingsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="UTC">UTC</SelectItem>
-                    <SelectItem value="America/New_York">Eastern Time (EST)</SelectItem>
-                    <SelectItem value="America/Chicago">Central Time (CST)</SelectItem>
-                    <SelectItem value="America/Denver">Mountain Time (MST)</SelectItem>
-                    <SelectItem value="America/Los_Angeles">Pacific Time (PST)</SelectItem>
+                    <SelectItem value="America/New_York">
+                      Eastern Time (EST)
+                    </SelectItem>
+                    <SelectItem value="America/Chicago">
+                      Central Time (CST)
+                    </SelectItem>
+                    <SelectItem value="America/Denver">
+                      Mountain Time (MST)
+                    </SelectItem>
+                    <SelectItem value="America/Los_Angeles">
+                      Pacific Time (PST)
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="flex items-center space-x-2">
-                <Switch id="auto-break" checked={autoBreak} onCheckedChange={setAutoBreak} />
+                <Switch
+                  id="auto-break"
+                  checked={autoBreak}
+                  onCheckedChange={setAutoBreak}
+                />
                 <Label htmlFor="auto-break">Automatically detect breaks</Label>
               </div>
             </CardContent>
@@ -316,11 +351,17 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Notification Settings</CardTitle>
-              <CardDescription>Configure how you receive notifications</CardDescription>
+              <CardDescription>
+                Configure how you receive notifications
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center space-x-2">
-                <Switch id="notifications" checked={notifications} onCheckedChange={setNotifications} />
+                <Switch
+                  id="notifications"
+                  checked={notifications}
+                  onCheckedChange={setNotifications}
+                />
                 <Label htmlFor="notifications">Enable notifications</Label>
               </div>
               <Separator />
@@ -345,7 +386,10 @@ export default function SettingsPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button onClick={handleSaveNotificationSettings} disabled={isSaving}>
+              <Button
+                onClick={handleSaveNotificationSettings}
+                disabled={isSaving}
+              >
                 {isSaving ? "Saving..." : "Save Changes"}
               </Button>
             </CardFooter>
@@ -356,16 +400,30 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Sharing Settings</CardTitle>
-              <CardDescription>Configure how your time tracking data can be shared</CardDescription>
+              <CardDescription>
+                Configure how your time tracking data can be shared
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center space-x-2">
-                <Switch id="share-reports" checked={shareReports} onCheckedChange={setShareReports} />
-                <Label htmlFor="share-reports">Allow sharing reports via public links</Label>
+                <Switch
+                  id="share-reports"
+                  checked={shareReports}
+                  onCheckedChange={setShareReports}
+                />
+                <Label htmlFor="share-reports">
+                  Allow sharing reports via public links
+                </Label>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="default-share-duration">Default Share Duration</Label>
-                <Select value={shareDuration} onValueChange={setShareDuration} disabled={!shareReports}>
+                <Label htmlFor="default-share-duration">
+                  Default Share Duration
+                </Label>
+                <Select
+                  value={shareDuration}
+                  onValueChange={setShareDuration}
+                  disabled={!shareReports}
+                >
                   <SelectTrigger id="default-share-duration">
                     <SelectValue placeholder="Select duration" />
                   </SelectTrigger>
@@ -388,5 +446,5 @@ export default function SettingsPage() {
         </TabsContent>
       </Tabs>
     </DashboardShell>
-  )
+  );
 }
