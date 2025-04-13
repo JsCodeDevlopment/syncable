@@ -1,10 +1,11 @@
-- [X] Ao iniciar uma jornada, e para-la a listagem em "Recent Entries" não atualiza mostrando o dado recém adicionado.
-- [X] Ao ir na página reports e clicar no botão share, não consigo gerar o link para acessarem meus reports.
-- [X] Ainda na página de reports ao clicar no botão generate report nada acontece.
-- [X] Ao clicar na opção settings presente no header, sou redirecionado para a tela de login
+- [x] Ao iniciar uma jornada, e para-la a listagem em "Recent Entries" não atualiza mostrando o dado recém adicionado.
+- [x] Para gerar um report na tela de reports os filtros personalizados de dia, semana e mês não alteram o valor dos inputs de data para gerar um relatório ao tempo selecionado.
+- [x] Ainda na página de reports ao clicar no botão generate report nada acontece.
+- [x] O botão de gerar relatório não está mais gerando nada, mesmo que existam dados.
+- [x] Ao clicar na opção settings presente no header, sou redirecionado para a tela de login
+- [x] Ao ir na página reports e clicar no botão share, não consigo gerar o link para acessarem meus reports.
 - [] Após clicar no link gerado para compartilhamento de reports a página de reports não exibe nenhuma informação mesmo que existam dados.
 - [] Na tela dashboard os gráficos em statistics não exibe dados nenhum, mesmo que existam dodos salvos.
 - [] Na tela de configurações o usuário pode determinar algumas configurações e em momento nenhum o sistema retorna algum feedback visual de erro ou SquareScissors, preciso que um toast exiba mensagem de erro ou sucesso ao executar alguma ação
-- [X] Para gerar um report na tela de reports os filtros personalizados de dia, semana e mês não alteram o valor dos inputs de data para gerar um relatório ao tempo selecionado.
-- [X] O botão de gerar relatório não está mais gerando nada, mesmo que existam dados.
 - [] Adicionar botão para alterar idioma para inglês ou português.
+- [] Adicionar opção para definir horas extras.
