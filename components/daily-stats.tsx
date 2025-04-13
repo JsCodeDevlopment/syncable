@@ -1,9 +1,9 @@
 "use client"
 
+import { getDailyStats } from "@/app/actions/time-entries"
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { useEffect, useState } from "react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
-import { getDailyStats } from "@/app/actions/time-entries"
 
 export function DailyStats({ userId }: { userId: number }) {
   const [data, setData] = useState([])
