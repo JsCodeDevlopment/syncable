@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
@@ -9,7 +10,7 @@ export function MainNav() {
   const pathname = usePathname();
 
   return (
-    <div className="flex gap-6 md:gap-10">
+    <div className="flex flex-col md:flex-row gap-6 md:gap-10">
       <Link href="/dashboard" className="flex items-center space-x-2">
         <Image
           src="/images/syncable-logo.png"
@@ -19,33 +20,30 @@ export function MainNav() {
         />
       </Link>
       <nav className="flex gap-6">
-        <Link
-          href="/dashboard"
+        <Button
           className={cn(
-            "flex items-center text-sm font-medium transition-colors hover:text-primary",
-            pathname === "/dashboard" ? "text-primary" : "text-muted-foreground"
+            "flex items-center text-sm font-medium transition-colors"
           )}
+          variant={pathname === "/dashboard" ? "default" : "outline"}
         >
-          Dashboard
-        </Link>
-        <Link
-          href="/reports"
+          <Link href="/dashboard">Dashboard</Link>
+        </Button>
+        <Button
           className={cn(
-            "flex items-center text-sm font-medium transition-colors hover:text-primary",
-            pathname === "/reports" ? "text-primary" : "text-muted-foreground"
+            "flex items-center text-sm font-medium transition-colors"
           )}
+          variant={pathname === "/reports" ? "default" : "outline"}
         >
-          Reports
-        </Link>
-        <Link
-          href="/settings"
+          <Link href="/reports">Reports</Link>
+        </Button>
+        <Button
           className={cn(
-            "flex items-center text-sm font-medium transition-colors hover:text-primary",
-            pathname === "/settings" ? "text-primary" : "text-muted-foreground"
+            "flex items-center text-sm font-medium transition-colors"
           )}
+          variant={pathname === "/settings" ? "default" : "outline"}
         >
-          Settings
-        </Link>
+          <Link href="/settings">Settings</Link>
+        </Button>
       </nav>
     </div>
   );
