@@ -1,34 +1,16 @@
+import { Footer } from "@/components/footer";
+import { LeadingHeader } from "@/components/leading-header";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="flex flex-col min-h-screen">
-      <header className="border-b">
-        <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center">
-            <Image
-              src="/images/syncable-logo.png"
-              alt="Syncable Logo"
-              width={120}
-              height={100}
-            />
-          </div>
-          <div className="ml-auto flex items-center gap-4">
-            <Link href="/login">
-              <Button variant="ghost">Login</Button>
-            </Link>
-            <Link href="/register">
-              <Button>Sign up</Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+    <div className="flex flex-col w-full min-h-screen justify-center">
+      <LeadingHeader />
       <main className="flex-1">
         <section className="w-full py-12 md:py-24 lg:py-32">
-          <div className="container px-4 md:px-6">
+          <div className="px-4 md:px-6">
             <div className="grid gap-6 lg:grid-cols-2 lg:gap-12 items-center">
               <div className="flex flex-col justify-center space-y-4">
                 <div className="space-y-2">
@@ -154,21 +136,7 @@ export default function Home() {
           </div>
         </section>
       </main>
-      <footer className="border-t py-6 md:py-0">
-        <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row px-4 sm:px-6 lg:px-8">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            © 2025 Syncable. All rights reserved.
-          </p>
-          <div className="flex gap-4 text-sm text-gray-500 dark:text-gray-400">
-            <Link href="/terms" className="hover:underline">
-              Terms
-            </Link>
-            <Link href="/privacy" className="hover:underline">
-              Privacy
-            </Link>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
