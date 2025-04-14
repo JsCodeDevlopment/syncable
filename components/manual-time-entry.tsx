@@ -2,14 +2,8 @@
 
 import type React from "react"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { PlusCircle, Trash2, Clock } from "lucide-react"
 import { createManualTimeEntry } from "@/app/actions/manual-entries"
-import { toast } from "@/components/ui/use-toast"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -19,6 +13,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
+import { toast } from "@/components/ui/use-toast"
+import { Clock, PlusCircle, Trash2 } from "lucide-react"
+import { useState } from "react"
 
 interface ManualTimeEntryProps {
   userId: number
@@ -63,9 +63,9 @@ export function ManualTimeEntry({ userId, onSuccess }: ManualTimeEntryProps) {
         return
       }
 
-      // Create Date objects
-      const startDateTime = new Date(`${date}T${startTime}:00`)
-      const endDateTime = endTime ? new Date(`${date}T${endTime}:00`) : null
+      // Create Date objects with Brazil timezone
+      const startDateTime = new Date(`${date}T${startTime}:00-03:00`) // -03:00 is Brazil timezone
+      const endDateTime = endTime ? new Date(`${date}T${endTime}:00-03:00`) : null
 
       // Validate start and end times
       if (endDateTime && startDateTime >= endDateTime) {
@@ -80,8 +80,8 @@ export function ManualTimeEntry({ userId, onSuccess }: ManualTimeEntryProps) {
 
       // Format breaks
       const formattedBreaks = breaks.map((breakItem) => {
-        const breakStartTime = new Date(`${date}T${breakItem.startTime}:00`)
-        const breakEndTime = breakItem.endTime ? new Date(`${date}T${breakItem.endTime}:00`) : null
+        const breakStartTime = new Date(`${date}T${breakItem.startTime}:00-03:00`)
+        const breakEndTime = breakItem.endTime ? new Date(`${date}T${breakItem.endTime}:00-03:00`) : null
 
         // Validate break times
         if (breakEndTime && breakStartTime >= breakEndTime) {

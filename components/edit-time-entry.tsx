@@ -2,14 +2,8 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { addBreakToTimeEntry, deleteBreak, updateBreak, updateTimeEntry } from "@/app/actions/manual-entries"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { PlusCircle, Trash2, Edit } from "lucide-react"
-import { updateTimeEntry, addBreakToTimeEntry, updateBreak, deleteBreak } from "@/app/actions/manual-entries"
-import { toast } from "@/components/ui/use-toast"
 import {
   Dialog,
   DialogContent,
@@ -19,6 +13,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
+import { toast } from "@/components/ui/use-toast"
+import { Edit, PlusCircle, Trash2 } from "lucide-react"
+import { useState } from "react"
 
 interface EditTimeEntryProps {
   userId: number
@@ -97,8 +97,8 @@ export function EditTimeEntry({
       }
 
       // Create Date objects
-      const startDateTime = new Date(`${date}T${startTime}:00`)
-      const endDateTime = endTime ? new Date(`${date}T${endTime}:00`) : null
+      const startDateTime = new Date(`${date}T${startTime}:00-03:00`)
+      const endDateTime = endTime ? new Date(`${date}T${endTime}:00-03:00`) : null
 
       // Validate start and end times
       if (endDateTime && startDateTime >= endDateTime) {
@@ -123,8 +123,8 @@ export function EditTimeEntry({
         // Skip deleted breaks that are new (not yet in the database)
         if (breakItem.isDeleted && breakItem.isNew) continue
 
-        const breakStartTime = new Date(`${date}T${breakItem.startTime}:00`)
-        const breakEndTime = breakItem.endTime ? new Date(`${date}T${breakItem.endTime}:00`) : null
+        const breakStartTime = new Date(`${date}T${breakItem.startTime}:00-03:00`)
+        const breakEndTime = breakItem.endTime ? new Date(`${date}T${breakItem.endTime}:00-03:00`) : null
 
         // Validate break times
         if (breakEndTime && breakStartTime >= breakEndTime) {

@@ -1,15 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { getRecentTimeEntries } from "@/app/actions/time-entries"
 import { deleteTimeEntry } from "@/app/actions/manual-entries"
-import { formatDuration, calculateDuration } from "@/lib/db"
-import { EditTimeEntry } from "./edit-time-entry"
-import { Trash2 } from "lucide-react"
-import { toast } from "@/components/ui/use-toast"
+import { getRecentTimeEntries } from "@/app/actions/time-entries"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +13,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { toast } from "@/components/ui/use-toast"
+import { calculateDuration, formatDateForDisplay, formatDuration, formatTimeForDisplay } from "@/lib/db"
+import { Trash2 } from "lucide-react"
+import { useEffect, useState } from "react"
+import { EditTimeEntry } from "./edit-time-entry"
 
 type Break = {
   id: number
@@ -148,20 +148,12 @@ export function RecentEntries({ userId }: { userId: number }) {
     } else if (date.toDateString() === yesterday.toDateString()) {
       return "Yesterday"
     } else {
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })
+      return formatDateForDisplay(date)
     }
   }
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    })
+    return formatTimeForDisplay(new Date(dateString))
   }
 
   if (isLoading && entries.length === 0) {

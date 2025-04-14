@@ -1,6 +1,6 @@
 "use server";
 
-import { sql } from "@/lib/db";
+import { formatDateForDisplay, formatTimeForDisplay, sql } from "@/lib/db";
 import crypto from "crypto";
 import { revalidatePath } from "next/cache";
 
@@ -97,23 +97,9 @@ export async function generateReport(
 
       return {
         id: entry.id,
-        date: startTime.toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        }),
-        startTime: startTime.toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        }),
-        endTime: endTime
-          ? endTime.toLocaleTimeString("en-US", {
-              hour: "numeric",
-              minute: "2-digit",
-              hour12: true,
-            })
-          : null,
+        date: formatDateForDisplay(startTime),
+        startTime: formatTimeForDisplay(startTime),
+        endTime: endTime ? formatTimeForDisplay(endTime) : null,
         duration,
         breaks,
         netWork,
