@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { endBreak, endTimeEntry, getActiveTimeEntry, startBreak, startTimeEntry } from "@/app/actions/time-entries"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Play, Coffee, LogOut } from "lucide-react"
-import { startTimeEntry, endTimeEntry, startBreak, endBreak, getActiveTimeEntry } from "@/app/actions/time-entries"
-import { formatDuration } from "@/lib/db"
 import { toast } from "@/components/ui/use-toast"
+import { formatDuration } from "@/lib/db"
+import { Coffee, LogOut, Play } from "lucide-react"
+import { useEffect, useState } from "react"
 import { ManualTimeEntry } from "./manual-time-entry"
 
 export function TimeTracker({ userId }: { userId: number }) {
