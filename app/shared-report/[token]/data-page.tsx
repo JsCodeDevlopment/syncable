@@ -26,7 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { formatDuration } from "@/lib/db";
+import { formatDuration } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -55,8 +55,8 @@ export function DataPage({ token }: DataPageProps) {
               "This shared report is not available or has expired."
           );
         } else {
-          setReport(result.data.report);
-          setReportData(result.data.reportData);
+          setReport(result.data?.report);
+          setReportData(result.data?.reportData);
         }
       } catch (err) {
         console.error("Error fetching shared report:", err);

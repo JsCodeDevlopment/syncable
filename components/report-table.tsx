@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ChevronLeft, ChevronRight, Search } from "lucide-react"
-import { formatDuration } from "@/lib/db"
+import { formatDuration } from "@/lib/utils"
 
 interface ReportTableProps {
   data: {

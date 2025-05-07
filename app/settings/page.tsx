@@ -71,7 +71,7 @@ export default function SettingsPage() {
         // Load user settings
         const result = await getUserSettings(user.id);
 
-        if (result.success) {
+        if (result.success && result.data) {
           const settings = result.data;
 
           // Set time tracking settings

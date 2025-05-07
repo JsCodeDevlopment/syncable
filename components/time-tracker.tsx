@@ -4,7 +4,7 @@ import { endBreak, endTimeEntry, getActiveTimeEntry, startBreak, startTimeEntry 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { toast } from "@/components/ui/use-toast"
-import { formatDuration } from "@/lib/db"
+import { formatDuration } from "@/lib/utils"
 import { Coffee, LogOut, Play } from "lucide-react"
 import { useEffect, useState } from "react"
 import { ManualTimeEntry } from "./manual-time-entry"

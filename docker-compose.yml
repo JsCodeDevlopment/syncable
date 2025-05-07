@@ -1,0 +1,56 @@
+---
+
+services:
+  app:
+    container_name: app
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    environment:
+      DATABASE_URL: postgresql://postgres:default@db:5432/postgres
+      NODE_ENV: development
+    command: yarn dev
+    ports: 
+      - "3000:3000"
+    user: root
+    volumes: 
+      - ".:/app"
+      - /app/node_modules
+    working_dir: /app
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: timeout 10s bash -c 'true > /dev/tcp/127.0.0.1/3000'
+      interval: 1m30s
+      timeout: 15s
+      retries: 3
+      start_period: 10s
+
+  schemaspy:
+    container_name: schemaspy
+    profiles: ["schemaspy"]
+    image: schemaspy/schemaspy:7.0.2
+    user: ${UID:-1000}:${GID:-1000}
+    volumes:
+      - "./schemaspy/output:/output"
+      - "./schemaspy/postgres.properties:/schemaspy.properties"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    container_name: db
+    image: postgres:15.8-bookworm
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: default
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 1m30s
+      timeout: 15s
+      retries: 3
+      start_period: 10s
