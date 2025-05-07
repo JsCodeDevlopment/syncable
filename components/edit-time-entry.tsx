@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "@/components/ui/use-toast"
+import { createBrazilianDate, formatDateForInput, formatTimeForInput } from "@/lib/timezone"
 import { Edit, PlusCircle, Trash2 } from "lucide-react"
 import { useState } from "react"
 
@@ -44,10 +45,7 @@ export function EditTimeEntry({
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
-  // Format date and times for form inputs
-  const formatDateForInput = (date: Date) => date.toISOString().split("T")[0]
-  const formatTimeForInput = (date: Date) => date.toTimeString().substring(0, 5)
-
+  // Format date and times for form inputs using Brazilian time zone
   const [date, setDate] = useState(formatDateForInput(initialStartTime))
   const [startTime, setStartTime] = useState(formatTimeForInput(initialStartTime))
   const [endTime, setEndTime] = useState(initialEndTime ? formatTimeForInput(initialEndTime) : "")
@@ -55,8 +53,8 @@ export function EditTimeEntry({
   const [breakItems, setBreakItems] = useState(
     breaks.map((breakItem) => ({
       id: breakItem.id,
-      startTime: formatTimeForInput(new Date(breakItem.startTime)),
-      endTime: breakItem.endTime ? formatTimeForInput(new Date(breakItem.endTime)) : "",
+      startTime: formatTimeForInput(breakItem.startTime),
+      endTime: breakItem.endTime ? formatTimeForInput(breakItem.endTime) : "",
       isNew: false,
       isDeleted: false,
     })),
@@ -88,7 +86,7 @@ export function EditTimeEntry({
       // Validate inputs
       if (!date || !startTime) {
         toast({
-          title: "Missing information",
+          title: "Missing Information",
           description: "Please provide at least a date and start time.",
           variant: "destructive",
         })
@@ -96,14 +94,19 @@ export function EditTimeEntry({
         return
       }
 
-      // Create Date objects
-      const startDateTime = new Date(`${date}T${startTime}:00-03:00`)
-      const endDateTime = endTime ? new Date(`${date}T${endTime}:00-03:00`) : null
+      // Create Date objects with Brazil timezone
+      const startDateTime = createBrazilianDate(date, startTime)
+      const endDateTime = endTime ? createBrazilianDate(date, endTime) : null
+
+      console.log("Updating time entry:", {
+        startDateTime: startDateTime.toISOString(),
+        endDateTime: endDateTime?.toISOString(),
+      })
 
       // Validate start and end times
       if (endDateTime && startDateTime >= endDateTime) {
         toast({
-          title: "Invalid time range",
+          title: "Invalid Time Range",
           description: "End time must be after start time.",
           variant: "destructive",
         })
@@ -123,8 +126,16 @@ export function EditTimeEntry({
         // Skip deleted breaks that are new (not yet in the database)
         if (breakItem.isDeleted && breakItem.isNew) continue
 
-        const breakStartTime = new Date(`${date}T${breakItem.startTime}:00-03:00`)
-        const breakEndTime = breakItem.endTime ? new Date(`${date}T${breakItem.endTime}:00-03:00`) : null
+        const breakStartTime = createBrazilianDate(date, breakItem.startTime)
+        const breakEndTime = breakItem.endTime ? createBrazilianDate(date, breakItem.endTime) : null
+
+        console.log("Processing break:", {
+          id: breakItem.id,
+          isNew: breakItem.isNew,
+          isDeleted: breakItem.isDeleted,
+          startTime: breakStartTime.toISOString(),
+          endTime: breakEndTime?.toISOString(),
+        })
 
         // Validate break times
         if (breakEndTime && breakStartTime >= breakEndTime) {
@@ -148,8 +159,8 @@ export function EditTimeEntry({
       }
 
       toast({
-        title: "Time entry updated",
-        description: "Your time entry has been updated successfully.",
+        title: "Entry Updated",
+        description: "Your time entry has been successfully updated.",
       })
 
       setOpen(false)
@@ -176,7 +187,7 @@ export function EditTimeEntry({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Edit Time Entry</DialogTitle>
-          <DialogDescription>Update the details for this time entry.</DialogDescription>
+          <DialogDescription>Update the details of this time entry.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
@@ -186,7 +197,7 @@ export function EditTimeEntry({
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="start-time">Start Time</Label>
+                <Label htmlFor="start-time">Start Time (24h format)</Label>
                 <Input
                   id="start-time"
                   type="time"
@@ -194,9 +205,10 @@ export function EditTimeEntry({
                   onChange={(e) => setStartTime(e.target.value)}
                   required
                 />
+                <p className="text-xs text-muted-foreground">Ex: 09:00 for 9 AM, 13:00 for 1 PM</p>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="end-time">End Time</Label>
+                <Label htmlFor="end-time">End Time (24h format)</Label>
                 <Input id="end-time" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
               </div>
             </div>
@@ -214,7 +226,7 @@ export function EditTimeEntry({
                       <div key={breakItem.id} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
                         <div className="grid gap-1">
                           <Label htmlFor={`break-start-${breakItem.id}`} className="text-xs">
-                            Start
+                            Start (24h)
                           </Label>
                           <Input
                             id={`break-start-${breakItem.id}`}
@@ -226,7 +238,7 @@ export function EditTimeEntry({
                         </div>
                         <div className="grid gap-1">
                           <Label htmlFor={`break-end-${breakItem.id}`} className="text-xs">
-                            End
+                            End (24h)
                           </Label>
                           <Input
                             id={`break-end-${breakItem.id}`}

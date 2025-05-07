@@ -17,7 +17,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { toast } from "@/components/ui/use-toast"
-import { calculateDuration, formatDateForDisplay, formatDuration, formatTimeForDisplay } from "@/lib/db"
+import { calculateDuration, formatDuration } from "@/lib/db"
+import { formatDateBR, formatTimeBR, getNowInBrazil, isSameDayBR } from "@/lib/timezone"
 import { Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { EditTimeEntry } from "./edit-time-entry"
@@ -55,7 +56,7 @@ export function RecentEntries({ userId }: { userId: number }) {
         console.error("Error fetching entries:", result.error)
         toast({
           title: "Error",
-          description: "Failed to load recent entries. Please try refreshing the page.",
+          description: "Failed to load recent entries. Please refresh the page.",
           variant: "destructive",
         })
       }
@@ -107,8 +108,8 @@ export function RecentEntries({ userId }: { userId: number }) {
       const result = await deleteTimeEntry(entryToDelete, userId)
       if (result.success) {
         toast({
-          title: "Entry deleted",
-          description: "The time entry has been deleted successfully.",
+          title: "Entry Deleted",
+          description: "The time entry has been successfully deleted.",
         })
         fetchEntries() // Refresh the entries after deletion
       } else {
@@ -139,21 +140,19 @@ export function RecentEntries({ userId }: { userId: number }) {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
-    const today = new Date()
+    const today = getNowInBrazil()
+
+    // Create yesterday in Brazilian time
     const yesterday = new Date(today)
     yesterday.setDate(yesterday.getDate() - 1)
 
-    if (date.toDateString() === today.toDateString()) {
+    if (isSameDayBR(date, today)) {
       return "Today"
-    } else if (date.toDateString() === yesterday.toDateString()) {
+    } else if (isSameDayBR(date, yesterday)) {
       return "Yesterday"
     } else {
-      return formatDateForDisplay(date)
+      return formatDateBR(date)
     }
-  }
-
-  const formatTime = (dateString: string) => {
-    return formatTimeForDisplay(new Date(dateString))
   }
 
   if (isLoading && entries.length === 0) {
@@ -188,7 +187,7 @@ export function RecentEntries({ userId }: { userId: number }) {
                 <div className="space-y-1">
                   <div className="font-medium">{formatDate(entry.start_time)}</div>
                   <div className="text-sm text-muted-foreground">
-                    {formatTime(entry.start_time)} - {entry.end_time ? formatTime(entry.end_time) : "In progress"}
+                    {formatTimeBR(startTime)} - {endTime ? formatTimeBR(endTime) : "In Progress"}
                   </div>
                 </div>
                 <div className="text-right space-y-1">
@@ -197,7 +196,7 @@ export function RecentEntries({ userId }: { userId: number }) {
                 </div>
                 <div className="flex items-center space-x-1">
                   <Badge variant="outline" className="mr-2">
-                    {entry.status}
+                    {entry.status === "completed" ? "Completed" : entry.status === "active" ? "Active" : entry.status}
                   </Badge>
                   <EditTimeEntry
                     userId={userId}
