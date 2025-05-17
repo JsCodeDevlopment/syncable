@@ -1,6 +1,6 @@
 "use client";
 
-import { User } from "@/app/actions/auth";
+import { getCurrentUser, User } from "@/app/actions/auth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,13 +13,25 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
-interface UserNavProps {
-  user: User;
-}
-
-export function UserNav({ user }: UserNavProps) {
+export function UserNav() {
   const router = useRouter();
+  const [user, setUser] = useState<User>({
+    id: 0,
+    name: "Guest",
+    email: "guest@guest.com",
+    created_at: new Date(),
+    updated_at: new Date(),
+  });
+
+  useEffect(() => {
+    const getUserData = async () => {
+      const user = await getCurrentUser();
+      user && setUser(user);
+    };
+    getUserData();
+  }, []);
 
   return (
     <DropdownMenu>
