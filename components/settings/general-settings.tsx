@@ -24,6 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/use-toast";
 import { formatDateBR } from "@/lib/timezone";
 import { useEffect, useState } from "react";
+import { ThemeSettings } from "./theme-settings";
 
 type UserProfile = {
   id: number;
@@ -38,15 +39,23 @@ type GeneralSettingsProps = {
     working_hours: number;
     timezone: string;
     auto_detect_breaks: boolean;
+    theme: "light" | "dark" | "system";
   };
 };
 
-export function GeneralSettings({ userId, initialSettings }: GeneralSettingsProps) {
+export function GeneralSettings({
+  userId,
+  initialSettings,
+}: GeneralSettingsProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [workingHours, setWorkingHours] = useState(initialSettings.working_hours.toString());
+  const [workingHours, setWorkingHours] = useState(
+    initialSettings.working_hours.toString()
+  );
   const [timezone, setTimezone] = useState(initialSettings.timezone);
-  const [autoBreak, setAutoBreak] = useState(initialSettings.auto_detect_breaks);
+  const [autoBreak, setAutoBreak] = useState(
+    initialSettings.auto_detect_breaks
+  );
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [name, setName] = useState("");
   const [hasChanges, setHasChanges] = useState(false);
@@ -61,7 +70,8 @@ export function GeneralSettings({ userId, initialSettings }: GeneralSettingsProp
         } else {
           toast({
             title: "Error Loading Profile",
-            description: "We couldn't load your profile information. Please try refreshing the page.",
+            description:
+              "We couldn't load your profile information. Please try refreshing the page.",
             variant: "destructive",
           });
         }
@@ -69,7 +79,8 @@ export function GeneralSettings({ userId, initialSettings }: GeneralSettingsProp
         console.error("Error loading profile:", error);
         toast({
           title: "Error Loading Profile",
-          description: "An unexpected error occurred while loading your profile. Please try again later.",
+          description:
+            "An unexpected error occurred while loading your profile. Please try again later.",
           variant: "destructive",
         });
       }
@@ -78,7 +89,6 @@ export function GeneralSettings({ userId, initialSettings }: GeneralSettingsProp
     loadProfile();
   }, [userId]);
 
-  // Monitor changes in name
   useEffect(() => {
     if (profile && name !== profile.name) {
       setHasChanges(true);
@@ -111,9 +121,9 @@ export function GeneralSettings({ userId, initialSettings }: GeneralSettingsProp
       if (result.success) {
         toast({
           title: "Profile Updated Successfully",
-          description: "Your name has been updated. The changes will be reflected across your account.",
+          description:
+            "Your name has been updated. The changes will be reflected across your account.",
         });
-        // Update local profile state
         if (profile) {
           setProfile({ ...profile, name: name.trim() });
           setHasChanges(false);
@@ -121,7 +131,8 @@ export function GeneralSettings({ userId, initialSettings }: GeneralSettingsProp
       } else {
         toast({
           title: "Failed to Update Profile",
-          description: result.error || "We couldn't update your name. Please try again.",
+          description:
+            result.error || "We couldn't update your name. Please try again.",
           variant: "destructive",
         });
       }
@@ -129,7 +140,8 @@ export function GeneralSettings({ userId, initialSettings }: GeneralSettingsProp
       console.error("Error updating profile:", error);
       toast({
         title: "Unexpected Error",
-        description: "Something went wrong while updating your profile. Please try again later.",
+        description:
+          "Something went wrong while updating your profile. Please try again later.",
         variant: "destructive",
       });
     } finally {
@@ -149,12 +161,14 @@ export function GeneralSettings({ userId, initialSettings }: GeneralSettingsProp
       if (result.success) {
         toast({
           title: "Settings Saved Successfully",
-          description: "Your time tracking preferences have been updated and will be applied to your future sessions.",
+          description:
+            "Your preferences have been updated and will be applied immediately.",
         });
       } else {
         toast({
           title: "Failed to Save Settings",
-          description: result.error || "We couldn't save your settings. Please try again.",
+          description:
+            result.error || "We couldn't save your settings. Please try again.",
           variant: "destructive",
         });
       }
@@ -162,7 +176,8 @@ export function GeneralSettings({ userId, initialSettings }: GeneralSettingsProp
       console.error("Error saving settings:", error);
       toast({
         title: "Unexpected Error",
-        description: "Something went wrong while saving your settings. Please try again later.",
+        description:
+          "Something went wrong while saving your settings. Please try again later.",
         variant: "destructive",
       });
     } finally {
@@ -179,50 +194,58 @@ export function GeneralSettings({ userId, initialSettings }: GeneralSettingsProp
   }
 
   return (
-    <div className="flex flex-col items-center justify-between mt-3 gap-5 md:flex-row">
-      <Card className="flex-1 h-96 w-full">
-        <CardHeader>
-          <CardTitle>Profile Information</CardTitle>
-          <CardDescription>Update your profile information</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter your name"
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={profile.email}
-              readOnly
-              className="bg-muted"
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label>Account Created</Label>
-            <div className="text-sm text-muted-foreground">
-              {formatDateBR(new Date(profile.created_at))}
+    <div className="flex flex-col gap-5">
+      <div className="grid gap-5 md:grid-cols-2">
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle>Profile Information</CardTitle>
+            <CardDescription>Update your profile information</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter your name"
+              />
             </div>
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button 
-            onClick={handleSaveProfile} 
-            disabled={isSavingProfile || !hasChanges}
-          >
-            {isSavingProfile ? "Saving..." : hasChanges ? "Save Changes" : "No Changes"}
-          </Button>
-        </CardFooter>
-      </Card>
+            <div className="grid gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={profile.email}
+                readOnly
+                className="bg-muted"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Account Created</Label>
+              <div className="text-sm text-muted-foreground">
+                {formatDateBR(new Date(profile.created_at))}
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button
+              onClick={handleSaveProfile}
+              disabled={isSavingProfile || !hasChanges}
+            >
+              {isSavingProfile
+                ? "Saving..."
+                : hasChanges
+                ? "Save Changes"
+                : "No Changes"}
+            </Button>
+          </CardFooter>
+        </Card>
 
-      <Card className="flex-1 h-96 w-full">
+        <ThemeSettings userId={userId} initialTheme={initialSettings.theme} />
+      </div>
+
+      <Card className="w-full">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             Time Tracking Settings
@@ -283,8 +306,8 @@ export function GeneralSettings({ userId, initialSettings }: GeneralSettingsProp
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleSaveGeneralSettings} disabled={isSaving || true}>
-            {isSaving ? "Saving..." : "Save Changes"}
+          <Button onClick={handleSaveGeneralSettings} disabled={true}>
+            Coming Soon
           </Button>
         </CardFooter>
       </Card>
