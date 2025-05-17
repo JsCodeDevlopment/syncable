@@ -9,3 +9,4 @@
 - [] Na tela de configurações o usuário pode determinar algumas configurações e em momento nenhum o sistema retorna algum feedback visual de erro ou SquareScissors, preciso que um toast exiba mensagem de erro ou sucesso ao executar alguma ação
 - [] Adicionar botão para alterar idioma para inglês ou português.
 - [] Adicionar opção para definir horas extras.
+- [] Adicionar opção para o usuário definir o formato de exibição de horas entre 12 e 24hrs
