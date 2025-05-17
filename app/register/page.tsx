@@ -67,6 +67,7 @@ export default function RegisterPage() {
           <div className="flex justify-center mb-4">
             <Image
               src="/images/syncable-logo.png"
+              className="dark:invert"
               alt="Syncable Logo"
               width={120}
               height={100}

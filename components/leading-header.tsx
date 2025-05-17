@@ -9,6 +9,7 @@ export function LeadingHeader() {
         <div className="flex items-center">
           <Image
             src="/images/syncable-logo.png"
+            className="dark:invert"
             alt="Syncable Logo"
             width={140}
             height={120}

@@ -14,6 +14,7 @@ export function MainNav() {
       <Link href="/dashboard" className="flex items-center space-x-2">
         <Image
           src="/images/syncable-logo.png"
+          className="dark:invert"
           alt="Syncable Logo"
           width={120}
           height={100}
