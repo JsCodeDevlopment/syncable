@@ -1,3 +1,5 @@
+"use client";
+
 import { MainNav } from "@/components/main-nav";
 import { UserNav } from "@/components/user-nav";
 import type React from "react";
@@ -7,7 +9,10 @@ interface DashboardShellProps {
   className?: string;
 }
 
-export function DashboardShell({ children, className }: DashboardShellProps) {
+export function DashboardShell({
+  children,
+  className,
+}: DashboardShellProps) {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-40 border-b bg-background">

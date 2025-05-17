@@ -1,7 +1,8 @@
-"use client"
+"use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
+import { getCurrentUser, User } from "@/app/actions/auth";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,38 +11,63 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { useRouter } from "next/navigation"
+} from "@/components/ui/dropdown-menu";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export function UserNav() {
-  const router = useRouter()
+  const router = useRouter();
+  const [user, setUser] = useState<User>({
+    id: 0,
+    name: "Guest",
+    email: "guest@guest.com",
+    created_at: new Date(),
+    updated_at: new Date(),
+  });
+
+  useEffect(() => {
+    const getUserData = async () => {
+      const user = await getCurrentUser();
+      user && setUser(user);
+    };
+    getUserData();
+  }, []);
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src="/placeholder.svg?height=32&width=32" alt="@user" />
-            <AvatarFallback>JD</AvatarFallback>
+        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+          <Avatar className="h-10 w-10 bg-black/10 text-black font-normal text-lg border border-black">
+            <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">John Doe</p>
-            <p className="text-xs leading-none text-muted-foreground">john.doe@example.com</p>
+            <p className="text-sm font-medium leading-none">{user.name}</p>
+            <p className="text-xs leading-none text-muted-foreground">
+              {user.email}
+            </p>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem onClick={() => router.push("/dashboard")}>Dashboard</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => router.push("/reports")}>Reports</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => router.push("/settings")}>Settings</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push("/dashboard")}>
+            Dashboard
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push("/reports")}>
+            Reports
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push("/settings")}>
+            Settings
+          </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => router.push("/login")}>Log out</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => router.push("/login")}>
+          Log out
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

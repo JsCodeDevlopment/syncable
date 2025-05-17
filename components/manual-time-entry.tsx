@@ -5,18 +5,19 @@ import type React from "react"
 import { createManualTimeEntry } from "@/app/actions/manual-entries"
 import { Button } from "@/components/ui/button"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "@/components/ui/use-toast"
+import { createBrazilianDate, formatDateForInput, getNowInBrazil } from "@/lib/timezone"
 import { Clock, PlusCircle, Trash2 } from "lucide-react"
 import { useState } from "react"
 
@@ -28,7 +29,10 @@ interface ManualTimeEntryProps {
 export function ManualTimeEntry({ userId, onSuccess }: ManualTimeEntryProps) {
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0])
+
+  // Initialize with current date in Brazilian time zone
+  const now = getNowInBrazil()
+  const [date, setDate] = useState(formatDateForInput(now))
   const [startTime, setStartTime] = useState("09:00")
   const [endTime, setEndTime] = useState("17:00")
   const [breaks, setBreaks] = useState<{ id: number; startTime: string; endTime: string }[]>([])
@@ -55,7 +59,7 @@ export function ManualTimeEntry({ userId, onSuccess }: ManualTimeEntryProps) {
       // Validate inputs
       if (!date || !startTime) {
         toast({
-          title: "Missing information",
+          title: "Missing Information",
           description: "Please provide at least a date and start time.",
           variant: "destructive",
         })
@@ -64,13 +68,13 @@ export function ManualTimeEntry({ userId, onSuccess }: ManualTimeEntryProps) {
       }
 
       // Create Date objects with Brazil timezone
-      const startDateTime = new Date(`${date}T${startTime}:00-03:00`) // -03:00 is Brazil timezone
-      const endDateTime = endTime ? new Date(`${date}T${endTime}:00-03:00`) : null
+      const startDateTime = createBrazilianDate(date, startTime)
+      const endDateTime = endTime ? createBrazilianDate(date, endTime) : null
 
       // Validate start and end times
       if (endDateTime && startDateTime >= endDateTime) {
         toast({
-          title: "Invalid time range",
+          title: "Invalid Time Range",
           description: "End time must be after start time.",
           variant: "destructive",
         })
@@ -80,8 +84,8 @@ export function ManualTimeEntry({ userId, onSuccess }: ManualTimeEntryProps) {
 
       // Format breaks
       const formattedBreaks = breaks.map((breakItem) => {
-        const breakStartTime = new Date(`${date}T${breakItem.startTime}:00-03:00`)
-        const breakEndTime = breakItem.endTime ? new Date(`${date}T${breakItem.endTime}:00-03:00`) : null
+        const breakStartTime = createBrazilianDate(date, breakItem.startTime)
+        const breakEndTime = breakItem.endTime ? createBrazilianDate(date, breakItem.endTime) : null
 
         // Validate break times
         if (breakEndTime && breakStartTime >= breakEndTime) {
@@ -98,13 +102,22 @@ export function ManualTimeEntry({ userId, onSuccess }: ManualTimeEntryProps) {
         }
       })
 
+      console.log("Submitting time entry:", {
+        startDateTime: startDateTime.toISOString(),
+        endDateTime: endDateTime?.toISOString(),
+        breaks: formattedBreaks.map((b) => ({
+          startTime: b.startTime.toISOString(),
+          endTime: b.endTime?.toISOString(),
+        })),
+      })
+
       // Submit the entry
       const result = await createManualTimeEntry(userId, startDateTime, endDateTime, formattedBreaks)
 
       if (result.success) {
         toast({
-          title: "Time entry created",
-          description: "Your manual time entry has been recorded successfully.",
+          title: "Entry Created",
+          description: "Your manual time entry has been successfully recorded.",
         })
         setOpen(false)
         if (onSuccess) onSuccess()
@@ -137,8 +150,10 @@ export function ManualTimeEntry({ userId, onSuccess }: ManualTimeEntryProps) {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Add Manual Time Entry</DialogTitle>
-          <DialogDescription>Enter the details for a time period you want to record manually.</DialogDescription>
+          <DialogTitle>Add Manual Entry</DialogTitle>
+          <DialogDescription>
+            Enter the details of the time period you want to manually record.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
@@ -148,7 +163,7 @@ export function ManualTimeEntry({ userId, onSuccess }: ManualTimeEntryProps) {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="start-time">Start Time</Label>
+                <Label htmlFor="start-time">Start Time (24h format)</Label>
                 <Input
                   id="start-time"
                   type="time"
@@ -156,9 +171,12 @@ export function ManualTimeEntry({ userId, onSuccess }: ManualTimeEntryProps) {
                   onChange={(e) => setStartTime(e.target.value)}
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  Ex: 09:00 for 9 AM, 13:00 for 1 PM, 00:00 for midnight
+                </p>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="end-time">End Time</Label>
+                <Label htmlFor="end-time">End Time (24h format)</Label>
                 <Input id="end-time" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
               </div>
             </div>
@@ -174,7 +192,7 @@ export function ManualTimeEntry({ userId, onSuccess }: ManualTimeEntryProps) {
                     <div key={breakItem.id} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
                       <div className="grid gap-1">
                         <Label htmlFor={`break-start-${breakItem.id}`} className="text-xs">
-                          Start
+                          Start (24h)
                         </Label>
                         <Input
                           id={`break-start-${breakItem.id}`}
@@ -186,7 +204,7 @@ export function ManualTimeEntry({ userId, onSuccess }: ManualTimeEntryProps) {
                       </div>
                       <div className="grid gap-1">
                         <Label htmlFor={`break-end-${breakItem.id}`} className="text-xs">
-                          End
+                          End (24h)
                         </Label>
                         <Input
                           id={`break-end-${breakItem.id}`}
