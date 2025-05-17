@@ -5,7 +5,13 @@ import { DashboardShell } from "@/components/dashboard-shell";
 import { GeneralSettings } from "@/components/settings/general-settings";
 import { NotificationSettings } from "@/components/settings/notification-settings";
 import { SharingSettings } from "@/components/settings/sharing-settings";
-import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
@@ -26,10 +32,10 @@ export default function SettingsPage() {
     enable_email_notifications: boolean;
     allow_sharing: boolean;
     share_duration_days: number;
+    theme: "light" | "dark" | "system";
   } | null>(null);
 
   useEffect(() => {
-    // Get user ID from cookie and check authentication
     const checkAuth = async () => {
       try {
         const user = await getCurrentUser();
@@ -42,7 +48,6 @@ export default function SettingsPage() {
 
         setUserId(user.id);
 
-        // Load user settings
         const result = await getUserSettings(user.id);
 
         if (result.success && result.data) {
@@ -123,6 +128,7 @@ export default function SettingsPage() {
               working_hours: settings.working_hours,
               timezone: settings.timezone,
               auto_detect_breaks: settings.auto_detect_breaks,
+              theme: settings.theme,
             }}
           />
         </TabsContent>
