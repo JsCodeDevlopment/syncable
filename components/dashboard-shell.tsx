@@ -1,4 +1,5 @@
-import { getCurrentUser } from "@/app/actions/auth";
+"use client";
+
 import { MainNav } from "@/components/main-nav";
 import { UserNav } from "@/components/user-nav";
 import type React from "react";
@@ -8,18 +9,16 @@ interface DashboardShellProps {
   className?: string;
 }
 
-export async function DashboardShell({
+export function DashboardShell({
   children,
   className,
 }: DashboardShellProps) {
-  const user = await getCurrentUser();
-
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-40 border-b bg-background">
         <div className="flex items-center justify-between py-4 px-20">
           <MainNav />
-          {user && <UserNav user={user} />}
+          <UserNav />
         </div>
       </header>
       <main className="flex-1 px-20">
