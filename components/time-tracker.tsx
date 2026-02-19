@@ -238,42 +238,67 @@ export function TimeTracker({ userId }: { userId: number }) {
     triggerRefresh()
   }
 
+  const getStatusColor = () => {
+    switch (status) {
+      case "working": return "text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/20";
+      case "break": return "text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/20";
+      default: return "text-muted-foreground bg-secondary";
+    }
+  }
+
+  const getStatusText = () => {
+    switch (status) {
+      case "working": return "Working";
+      case "break": return "On Break";
+      default: return "Ready to Start";
+    }
+  }
+
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <Card className="p-4 flex flex-col items-center justify-center">
-          <div className="text-sm font-medium text-muted-foreground mb-2">Working Time</div>
-          <div className="text-3xl font-bold">
-            {formatDuration(elapsedTime - totalBreakTime - (status === "break" ? breakTime : 0))}
+    <div className="space-y-6">
+      <div className="flex flex-col items-center justify-center py-6 space-y-4">
+        <div className={`px-4 py-1.5 rounded-full text-sm font-medium flex items-center gap-2 ${getStatusColor()}`}>
+          <div className={`h-2 w-2 rounded-full bg-current ${status !== "idle" ? "animate-pulse" : ""}`} />
+          {getStatusText()}
+        </div>
+
+        <div className="text-center relative">
+          <div className="text-7xl font-bold tracking-tighter tabular-nums text-foreground">
+            {status === "idle"
+              ? "00:00"
+              : formatDuration(elapsedTime - totalBreakTime - (status === "break" ? breakTime : 0)).split(' ')[0].replace('h', ':').replace('m', '')
+            }
           </div>
-        </Card>
-        <Card className="p-4 flex flex-col items-center justify-center">
-          <div className="text-sm font-medium text-muted-foreground mb-2">Break Time</div>
-          <div className="text-3xl font-bold">
-            {formatDuration(totalBreakTime + (status === "break" ? breakTime : 0))}
+          <div className="text-sm text-muted-foreground mt-2 font-medium">
+            {status === "break"
+              ? `Break time: ${formatDuration(totalBreakTime + breakTime)}`
+              : `Total break: ${formatDuration(totalBreakTime)}`
+            }
           </div>
-        </Card>
+        </div>
       </div>
 
-      <div className="flex justify-center space-x-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {status === "idle" && (
           <>
-            <Button onClick={handleStartWorking} className="flex-1" disabled={isLoading}>
-              <Play className="mr-2 h-4 w-4" />
+            <Button onClick={handleStartWorking} className="h-12 text-lg w-full bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
+              <Play className="mr-2 h-5 w-5 fill-current" />
               {isLoading ? "Starting..." : "Start Working"}
             </Button>
-            <ManualTimeEntry userId={userId} onSuccess={refreshData} />
+            <div className="w-full">
+              <ManualTimeEntry userId={userId} onSuccess={refreshData} />
+            </div>
           </>
         )}
 
         {status === "working" && (
           <>
-            <Button onClick={handleStartBreak} variant="outline" className="flex-1" disabled={isLoading}>
-              <Coffee className="mr-2 h-4 w-4" />
+            <Button onClick={handleStartBreak} variant="outline" className="h-12 text-md w-full border-orange-200 hover:bg-orange-50 hover:text-orange-600 dark:border-orange-800 dark:hover:bg-orange-900/20" disabled={isLoading}>
+              <Coffee className="mr-2 h-5 w-5" />
               {isLoading ? "Processing..." : "Take a Break"}
             </Button>
-            <Button onClick={handleEndDay} variant="destructive" className="flex-1" disabled={isLoading}>
-              <LogOut className="mr-2 h-4 w-4" />
+            <Button onClick={handleEndDay} variant="destructive" className="h-12 text-md w-full" disabled={isLoading}>
+              <LogOut className="mr-2 h-5 w-5" />
               {isLoading ? "Processing..." : "End Day"}
             </Button>
           </>
@@ -281,12 +306,12 @@ export function TimeTracker({ userId }: { userId: number }) {
 
         {status === "break" && (
           <>
-            <Button onClick={handleResumeWorking} className="flex-1" disabled={isLoading}>
-              <Play className="mr-2 h-4 w-4" />
+            <Button onClick={handleResumeWorking} className="h-12 text-md w-full bg-green-600 hover:bg-green-700" disabled={isLoading}>
+              <Play className="mr-2 h-5 w-5 fill-current" />
               {isLoading ? "Processing..." : "Resume Working"}
             </Button>
-            <Button onClick={handleEndDay} variant="destructive" className="flex-1" disabled={isLoading}>
-              <LogOut className="mr-2 h-4 w-4" />
+            <Button onClick={handleEndDay} variant="destructive" className="h-12 text-md w-full" disabled={isLoading}>
+              <LogOut className="mr-2 h-5 w-5" />
               {isLoading ? "Processing..." : "End Day"}
             </Button>
           </>
@@ -294,8 +319,11 @@ export function TimeTracker({ userId }: { userId: number }) {
       </div>
 
       {status !== "idle" && (
-        <div className="text-center text-sm text-muted-foreground">
-          {status === "working" ? "Currently working" : "On break"} • Started at {startTime?.toLocaleTimeString()}
+        <div className="rounded-lg bg-muted/50 p-3 text-center text-xs text-muted-foreground">
+          Started working at <span className="font-medium text-foreground">{startTime?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+          {status === "break" && (
+            <span> • Break started at <span className="font-medium text-foreground">{breakStartTime?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></span>
+          )}
         </div>
       )}
     </div>
