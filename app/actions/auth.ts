@@ -59,7 +59,8 @@ export async function registerUser(formData: FormData) {
 
     // Set a session cookie
     const sessionId = crypto.randomUUID()
-    cookies().set("session_id", sessionId, {
+    const cookieStore = await cookies()
+    cookieStore.set("session_id", sessionId, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 24 * 7, // 1 week
@@ -67,7 +68,7 @@ export async function registerUser(formData: FormData) {
     })
 
     // Store user ID in another cookie for easy access
-    cookies().set("user_id", user.id.toString(), {
+    cookieStore.set("user_id", user.id.toString(), {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 24 * 7, // 1 week
@@ -109,7 +110,8 @@ export async function loginUser(formData: FormData) {
 
     // Set a session cookie
     const sessionId = crypto.randomUUID()
-    cookies().set("session_id", sessionId, {
+    const cookieStore = await cookies()
+    cookieStore.set("session_id", sessionId, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 24 * 7, // 1 week
@@ -117,7 +119,7 @@ export async function loginUser(formData: FormData) {
     })
 
     // Store user ID in another cookie for easy access
-    cookies().set("user_id", user.id.toString(), {
+    cookieStore.set("user_id", user.id.toString(), {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 24 * 7, // 1 week
@@ -133,14 +135,16 @@ export async function loginUser(formData: FormData) {
 
 // Logout a user
 export async function logoutUser() {
-  cookies().delete("session_id")
-  cookies().delete("user_id")
+  const cookieStore = await cookies()
+  cookieStore.delete("session_id")
+  cookieStore.delete("user_id")
   redirect("/login")
 }
 
 // Get the current user
 export async function getCurrentUser(): Promise<User | null> {
-  const userId = cookies().get("user_id")?.value
+  const cookieStore = await cookies()
+  const userId = cookieStore.get("user_id")?.value
 
   if (!userId) {
     return null
