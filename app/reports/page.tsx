@@ -492,6 +492,7 @@ export default function ReportsPage() {
             )}
           </CardContent>
         </Card>
+
       </div>
     </DashboardShell>
   );

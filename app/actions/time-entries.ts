@@ -26,11 +26,11 @@ export type Break = {
 // Start a new time entry
 export async function startTimeEntry(userId: number) {
   try {
-    const result = await sql`
+    const result = (await sql`
       INSERT INTO time_entries (user_id, start_time, status)
       VALUES (${userId}, NOW(), 'active')
       RETURNING id, user_id, start_time, end_time, status, created_at, updated_at
-    `
+    `) as TimeEntry[]
 
     revalidatePath("/dashboard")
     return { success: true, data: result[0] as TimeEntry }
@@ -51,12 +51,12 @@ export async function endTimeEntry(timeEntryId: number) {
     `
 
     // Then end the time entry
-    const result = await sql`
+    const result = (await sql`
       UPDATE time_entries
       SET end_time = NOW(), status = 'completed', updated_at = NOW()
       WHERE id = ${timeEntryId} AND end_time IS NULL
       RETURNING id, user_id, start_time, end_time, status, created_at, updated_at
-    `
+    `) as TimeEntry[]
 
     revalidatePath("/dashboard")
     return { success: true, data: result[0] as TimeEntry }
@@ -69,11 +69,11 @@ export async function endTimeEntry(timeEntryId: number) {
 // Start a break
 export async function startBreak(timeEntryId: number) {
   try {
-    const result = await sql`
+    const result = (await sql`
       INSERT INTO breaks (time_entry_id, start_time)
       VALUES (${timeEntryId}, NOW())
       RETURNING id, time_entry_id, start_time, end_time, created_at, updated_at
-    `
+    `) as Break[]
 
     revalidatePath("/dashboard")
     return { success: true, data: result[0] as Break }
@@ -86,12 +86,12 @@ export async function startBreak(timeEntryId: number) {
 // End a break
 export async function endBreak(breakId: number) {
   try {
-    const result = await sql`
+    const result = (await sql`
       UPDATE breaks
       SET end_time = NOW(), updated_at = NOW()
       WHERE id = ${breakId} AND end_time IS NULL
       RETURNING id, time_entry_id, start_time, end_time, created_at, updated_at
-    `
+    `) as Break[]
 
     revalidatePath("/dashboard")
     return { success: true, data: result[0] as Break }
@@ -104,13 +104,13 @@ export async function endBreak(breakId: number) {
 // Get active time entry for a user
 export async function getActiveTimeEntry(userId: number) {
   try {
-    const timeEntries = await sql`
+    const timeEntries = (await sql`
       SELECT id, user_id, start_time, end_time, status, created_at, updated_at
       FROM time_entries
       WHERE user_id = ${userId} AND status = 'active' AND end_time IS NULL
       ORDER BY start_time DESC
       LIMIT 1
-    `
+    `) as TimeEntry[]
 
     if (timeEntries.length === 0) {
       return { success: true, data: null }
@@ -119,13 +119,13 @@ export async function getActiveTimeEntry(userId: number) {
     const timeEntry = timeEntries[0] as TimeEntry
 
     // Get active break if any
-    const breaks = await sql`
+    const breaks = (await sql`
       SELECT id, time_entry_id, start_time, end_time, created_at, updated_at
       FROM breaks
       WHERE time_entry_id = ${timeEntry.id} AND end_time IS NULL
       ORDER BY start_time DESC
       LIMIT 1
-    `
+    `) as Break[]
 
     const activeBreak = breaks.length > 0 ? (breaks[0] as Break) : null
 
@@ -142,10 +142,34 @@ export async function getActiveTimeEntry(userId: number) {
   }
 }
 
+
+// Get total break time for a time entry
+export async function getTotalBreakTime(timeEntryId: number) {
+  try {
+    const result = (await sql`
+      SELECT 
+        COALESCE(
+          SUM(
+            EXTRACT(EPOCH FROM (
+              COALESCE(end_time, CURRENT_TIMESTAMP) - start_time
+            )) * 1000
+          ), 
+          0
+        ) AS total_break_time
+      FROM breaks
+      WHERE time_entry_id = ${timeEntryId}
+    `) as { total_break_time: number }[]
+    return { success: true, data: Number(result[0].total_break_time) }
+  } catch (error) {
+    console.error("Error getting total break time:", error)
+    return { success: false, error: "Failed to get total break time" }
+  }
+}
+
 // Get recent time entries for a user
 export async function getRecentTimeEntries(userId: number, limit = 5) {
   try {
-    const timeEntries = await sql`
+    const timeEntries = (await sql`
       SELECT 
         te.id, 
         te.user_id, 
@@ -168,17 +192,17 @@ export async function getRecentTimeEntries(userId: number, limit = 5) {
       GROUP BY te.id
       ORDER BY te.start_time DESC
       LIMIT ${limit}
-    `
+    `) as (TimeEntry & { total_break_time: number })[]
 
     // For each time entry, fetch its breaks
     const entriesWithBreaks = await Promise.all(
       timeEntries.map(async (entry) => {
-        const breaks = await sql`
+        const breaks = (await sql`
           SELECT id, time_entry_id, start_time, end_time, created_at, updated_at
           FROM breaks
           WHERE time_entry_id = ${entry.id}
           ORDER BY start_time
-        `
+        `) as Break[]
         return { ...entry, breaks }
       }),
     )
@@ -193,7 +217,7 @@ export async function getRecentTimeEntries(userId: number, limit = 5) {
 // Get time entries for a specific date range
 export async function getTimeEntriesInRange(userId: number, startDate: Date, endDate: Date) {
   try {
-    const timeEntries = await sql`
+    const timeEntries = (await sql`
       SELECT 
         te.id, 
         te.user_id, 
@@ -219,7 +243,7 @@ export async function getTimeEntriesInRange(userId: number, startDate: Date, end
         te.start_time <= ${endDate}
       GROUP BY te.id
       ORDER BY te.start_time DESC
-    `
+    `) as (TimeEntry & { total_break_time: number })[]
 
     return { success: true, data: timeEntries }
   } catch (error) {
@@ -237,7 +261,7 @@ export async function getDailyStats(userId: number, date: Date) {
   endOfDay.setHours(23, 59, 59, 999)
 
   try {
-    const result = await sql`
+    const result = (await sql`
       WITH hourly_data AS (
         SELECT 
           EXTRACT(HOUR FROM te.start_time) AS hour,
@@ -284,7 +308,7 @@ export async function getDailyStats(userId: number, date: Date) {
       FROM hourly_data
       GROUP BY hour
       ORDER BY hour
-    `
+    `) as { hour: number; work: number; break: number }[]
 
     // Format the data for the chart
     const formattedData = Array.from({ length: 24 }, (_, i) => {
@@ -314,7 +338,7 @@ export async function getWeeklyStats(userId: number, date: Date) {
   endOfWeek.setHours(23, 59, 59, 999)
 
   try {
-    const result = await sql`
+    const result = (await sql`
       WITH daily_data AS (
         SELECT 
           EXTRACT(DOW FROM te.start_time) AS day_of_week,
@@ -340,7 +364,7 @@ export async function getWeeklyStats(userId: number, date: Date) {
       FROM daily_data
       GROUP BY day_of_week
       ORDER BY day_of_week
-    `
+    `) as { day_of_week: number; work: number; break: number }[]
 
     // Format the data for the chart
     const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
@@ -369,7 +393,7 @@ export async function getMonthlyStats(userId: number, date: Date) {
   const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59, 999)
 
   try {
-    const result = await sql`
+    const result = (await sql`
       WITH weekly_data AS (
         SELECT 
           FLOOR((EXTRACT(DAY FROM te.start_time) - 1) / 7) + 1 AS week_of_month,
@@ -395,7 +419,7 @@ export async function getMonthlyStats(userId: number, date: Date) {
       FROM weekly_data
       GROUP BY week_of_month
       ORDER BY week_of_month
-    `
+    `) as { week_of_month: number; work: number; break: number }[]
 
     // Format the data for the chart
     const formattedData = Array.from({ length: 5 }, (_, i) => {

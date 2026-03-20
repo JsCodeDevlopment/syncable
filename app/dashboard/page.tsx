@@ -1,29 +1,38 @@
-import { DailyStats } from "@/components/daily-stats"
-import { DashboardHeader } from "@/components/dashboard-header"
-import { DashboardShell } from "@/components/dashboard-shell"
-import { MonthlyStats } from "@/components/monthly-stats"
-import { RecentEntries } from "@/components/recent-entries"
-import { TimeTracker } from "@/components/time-tracker"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { WeeklyStats } from "@/components/weekly-stats"
-import { formatDuration } from "@/lib/db"
-import Link from "next/link"
-import { requireAuth } from "../actions/auth"
-import { getDashboardSummary } from "../actions/dashboard-summary"
+import { DailyStats } from "@/components/daily-stats";
+import { DashboardHeader } from "@/components/dashboard-header";
+import { DashboardShell } from "@/components/dashboard-shell";
+import { MonthlyStats } from "@/components/monthly-stats";
+import { RecentEntries } from "@/components/recent-entries";
+import { TimeTracker } from "@/components/time-tracker";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { WeeklyStats } from "@/components/weekly-stats";
+import { formatDuration } from "@/lib/format-duration";
+import Link from "next/link";
+import { requireAuth } from "../actions/auth";
+import { getDashboardSummary } from "../actions/dashboard-summary";
 
 export default async function DashboardPage() {
   // Check if user is authenticated
-  const user = await requireAuth()
+  const user = await requireAuth();
 
   // Get dashboard summary data
-  const summaryResult = await getDashboardSummary(user.id)
-  const summary = summaryResult.success ? summaryResult.data : null
+  const summaryResult = await getDashboardSummary(user.id);
+  const summary = summaryResult.success ? summaryResult.data : null;
 
   return (
     <DashboardShell>
-      <DashboardHeader heading="Dashboard" text="Track your time and view your progress">
+      <DashboardHeader
+        heading="Dashboard"
+        text="Track your time and view your progress"
+      >
         <Link href="/reports">
           <Button variant="outline">View Reports</Button>
         </Link>
@@ -47,7 +56,9 @@ export default async function DashboardPage() {
             </svg>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{summary ? formatDuration(summary.today.netDuration) : "0h 00m"}</div>
+            <div className="text-2xl font-bold">
+              {summary ? formatDuration(summary.today.netDuration) : "0h 00m"}
+            </div>
             <p className="text-xs text-muted-foreground">
               {summary && summary.today.percentChange !== 0
                 ? `${summary.today.percentChange > 0 ? "+" : ""}${summary.today.percentChange}% from yesterday`
@@ -74,7 +85,9 @@ export default async function DashboardPage() {
             </svg>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{summary ? formatDuration(summary.week.netDuration) : "0h 00m"}</div>
+            <div className="text-2xl font-bold">
+              {summary ? formatDuration(summary.week.netDuration) : "0h 00m"}
+            </div>
             <p className="text-xs text-muted-foreground">
               {summary && summary.week.percentChange !== 0
                 ? `${summary.week.percentChange > 0 ? "+" : ""}${summary.week.percentChange}% from last week`
@@ -100,7 +113,9 @@ export default async function DashboardPage() {
             </svg>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{summary ? formatDuration(summary.month.netDuration) : "0h 00m"}</div>
+            <div className="text-2xl font-bold">
+              {summary ? formatDuration(summary.month.netDuration) : "0h 00m"}
+            </div>
             <p className="text-xs text-muted-foreground">
               {summary && summary.month.percentChange !== 0
                 ? `${summary.month.percentChange > 0 ? "+" : ""}${summary.month.percentChange}% from last month`
@@ -126,7 +141,9 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {summary ? formatDuration(summary.todayBreaks.totalTime) : "0h 00m"}
+              {summary
+                ? formatDuration(summary.todayBreaks.totalTime)
+                : "0h 00m"}
             </div>
             <p className="text-xs text-muted-foreground">
               {summary
@@ -141,13 +158,15 @@ export default async function DashboardPage() {
         <Card className="col-span-4">
           <CardHeader>
             <CardTitle>Time Tracker</CardTitle>
-            <CardDescription>Track your time entries, breaks, and exits</CardDescription>
+            <CardDescription>
+              Track your time entries, breaks, and exits
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <TimeTracker userId={user.id} />
           </CardContent>
         </Card>
-        <Card className="col-span-3">
+        <Card className="col-span-3 border-t-4 border-t-primary shadow-sm h-full max-h-[500px] flex flex-col">
           <CardHeader>
             <CardTitle>Recent Entries</CardTitle>
             <CardDescription>Your most recent time entries</CardDescription>
@@ -162,7 +181,9 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle>Statistics</CardTitle>
-            <CardDescription>View your time tracking statistics</CardDescription>
+            <CardDescription>
+              View your time tracking statistics
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="daily">
@@ -185,5 +206,5 @@ export default async function DashboardPage() {
         </Card>
       </div>
     </DashboardShell>
-  )
+  );
 }
