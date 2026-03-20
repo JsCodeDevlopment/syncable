@@ -5,6 +5,17 @@ import { DashboardShell } from "@/components/dashboard-shell";
 import { DatePicker } from "@/components/date-picker";
 import { ReportChart } from "@/components/report-chart";
 import { ReportTable } from "@/components/report-table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,6 +24,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -32,14 +44,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "@/components/ui/use-toast";
-import { formatDuration } from "@/lib/db";
-import { Calendar, Download, ExternalLink, FileText, Filter, PieChart, Share, Table as TableIcon, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { getCurrentUser } from "../actions/auth";
-import { createSharedReport, generateReport, getUserSharedReports, deleteSharedReport, deleteSharedReports, type SharedReport } from "../actions/reports";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -48,18 +52,31 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "@/components/ui/use-toast";
 import { formatDateForDisplay } from "@/lib/db";
+import { formatDuration } from "@/lib/format-duration";
+import {
+  Calendar,
+  Download,
+  ExternalLink,
+  FileText,
+  Filter,
+  PieChart,
+  Share,
+  Table as TableIcon,
+  Trash2,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { getCurrentUser } from "../actions/auth";
+import {
+  createSharedReport,
+  deleteSharedReport,
+  deleteSharedReports,
+  generateReport,
+  getUserSharedReports,
+  type SharedReport,
+} from "../actions/reports";
 
 export default function ReportsPage() {
   const [userId, setUserId] = useState<number | null>(null);
@@ -166,7 +183,7 @@ export default function ReportsPage() {
         userId,
         startDate,
         endDate,
-        activeTab
+        activeTab,
       );
       console.log("Report generation result:", result);
 
@@ -272,7 +289,7 @@ export default function ReportsPage() {
       link.setAttribute("href", url);
       link.setAttribute(
         "download",
-        `syncable-report-${new Date().toISOString().split("T")[0]}.csv`
+        `syncable-report-${new Date().toISOString().split("T")[0]}.csv`,
       );
       link.style.visibility = "hidden";
       document.body.appendChild(link);
@@ -322,7 +339,7 @@ export default function ReportsPage() {
         activeTab as "daily" | "weekly" | "monthly",
         startDate,
         endDate,
-        Number.parseInt(shareDuration)
+        Number.parseInt(shareDuration),
       );
 
       if (result.success) {
@@ -421,7 +438,7 @@ export default function ReportsPage() {
     setSelectedReports((prev) =>
       prev.includes(reportId)
         ? prev.filter((id) => id !== reportId)
-        : [...prev, reportId]
+        : [...prev, reportId],
     );
   };
 
@@ -474,8 +491,12 @@ export default function ReportsPage() {
                     onCheckedChange={setIsPublic}
                   />
                   <div className="space-y-0.5">
-                    <Label htmlFor="public-report" className="text-base">Public Access</Label>
-                    <p className="text-xs text-muted-foreground">Allow anyone with the link to view this report</p>
+                    <Label htmlFor="public-report" className="text-base">
+                      Public Access
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Allow anyone with the link to view this report
+                    </p>
                   </div>
                 </div>
 
@@ -535,11 +556,19 @@ export default function ReportsPage() {
               </div>
               <DialogFooter>
                 {isPublic && !shareLink ? (
-                  <Button onClick={handleShareReport} disabled={isSharing} className="w-full sm:w-auto">
+                  <Button
+                    onClick={handleShareReport}
+                    disabled={isSharing}
+                    className="w-full sm:w-auto"
+                  >
                     {isSharing ? "Generating..." : "Generate Link"}
                   </Button>
                 ) : (
-                  <Button variant="ghost" onClick={() => setShareLink("")} className="w-full sm:w-auto">
+                  <Button
+                    variant="ghost"
+                    onClick={() => setShareLink("")}
+                    className="w-full sm:w-auto"
+                  >
                     Reset Link
                   </Button>
                 )}
@@ -611,7 +640,12 @@ export default function ReportsPage() {
               </div>
             </div>
             <div className="mt-6 flex justify-end">
-              <Button onClick={handleGenerateReport} disabled={isGenerating} size="lg" className="w-full sm:w-auto">
+              <Button
+                onClick={handleGenerateReport}
+                disabled={isGenerating}
+                size="lg"
+                className="w-full sm:w-auto"
+              >
                 {isGenerating ? "Generating..." : "Generate Report"}
               </Button>
             </div>
@@ -626,7 +660,9 @@ export default function ReportsPage() {
                 <Tabs defaultValue="table" className="w-full">
                   <div className="flex items-center justify-between px-2">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-semibold tracking-tight mr-2">Results View:</h3>
+                      <h3 className="text-sm font-semibold tracking-tight mr-2">
+                        Results View:
+                      </h3>
                       <TabsList className="h-9">
                         <TabsTrigger value="table" className="text-xs px-3">
                           <TableIcon className="mr-1.5 h-3.5 w-3.5" />
@@ -671,7 +707,11 @@ export default function ReportsPage() {
             {selectedReports.length > 0 && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm" className="w-full sm:w-auto">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="w-full sm:w-auto"
+                  >
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete Selected ({selectedReports.length})
                   </Button>
@@ -680,13 +720,16 @@ export default function ReportsPage() {
                   <AlertDialogHeader>
                     <AlertDialogTitle>Delete Reports?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete the
-                      selected {selectedReports.length} shared reports.
+                      This action cannot be undone. This will permanently delete
+                      the selected {selectedReports.length} shared reports.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    <AlertDialogAction
+                      onClick={handleBulkDelete}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
                       Delete Reports
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -710,7 +753,9 @@ export default function ReportsPage() {
                             savedReports.length > 0 &&
                             selectedReports.length === savedReports.length
                           }
-                          onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                          onCheckedChange={(checked) =>
+                            handleSelectAll(!!checked)
+                          }
                           aria-label="Select all"
                         />
                       </TableHead>
@@ -723,11 +768,16 @@ export default function ReportsPage() {
                   </TableHeader>
                   <TableBody>
                     {savedReports.map((report) => (
-                      <TableRow key={report.id} className="hover:bg-muted/50 transition-colors">
+                      <TableRow
+                        key={report.id}
+                        className="hover:bg-muted/50 transition-colors"
+                      >
                         <TableCell className="text-center">
                           <Checkbox
                             checked={selectedReports.includes(report.id)}
-                            onCheckedChange={() => handleToggleSelect(report.id)}
+                            onCheckedChange={() =>
+                              handleToggleSelect(report.id)
+                            }
                             aria-label={`Select report ${report.id}`}
                           />
                         </TableCell>
@@ -739,7 +789,8 @@ export default function ReportsPage() {
                         </TableCell>
                         <TableCell>
                           <span className="inline-flex items-center px-2 py-1 rounded-md bg-muted text-xs font-medium">
-                            {formatDateForDisplay(new Date(report.start_date))} - {formatDateForDisplay(new Date(report.end_date))}
+                            {formatDateForDisplay(new Date(report.start_date))}{" "}
+                            - {formatDateForDisplay(new Date(report.end_date))}
                           </span>
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm">
@@ -748,7 +799,9 @@ export default function ReportsPage() {
                         <TableCell>
                           {report.expires_at ? (
                             <span className="text-xs text-orange-600 dark:text-orange-400 font-medium bg-orange-100 dark:bg-orange-900/20 px-2 py-1 rounded-full">
-                              {formatDateForDisplay(new Date(report.expires_at))}
+                              {formatDateForDisplay(
+                                new Date(report.expires_at),
+                              )}
                             </span>
                           ) : (
                             <span className="text-xs text-green-600 dark:text-green-400 font-medium bg-green-100 dark:bg-green-900/20 px-2 py-1 rounded-full">
@@ -795,15 +848,20 @@ export default function ReportsPage() {
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                  <AlertDialogTitle>
+                                    Are you sure?
+                                  </AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    This will permanently delete this shared report link.
+                                    This will permanently delete this shared
+                                    report link.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                                   <AlertDialogAction
-                                    onClick={() => handleDeleteReport(report.id)}
+                                    onClick={() =>
+                                      handleDeleteReport(report.id)
+                                    }
                                     className="bg-destructive hover:bg-destructive/90"
                                   >
                                     Delete
@@ -823,15 +881,17 @@ export default function ReportsPage() {
                 <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
                   <Share className="h-6 w-6 opacity-40" />
                 </div>
-                <h3 className="font-medium text-foreground mb-1">No Saved Reports</h3>
+                <h3 className="font-medium text-foreground mb-1">
+                  No Saved Reports
+                </h3>
                 <p className="text-sm max-w-sm mx-auto mb-4">
-                  Generate a report above and use the "Share" feature to create a saved link here.
+                  Generate a report above and use the "Share" feature to create
+                  a saved link here.
                 </p>
               </div>
             )}
           </CardContent>
         </Card>
-
       </div>
     </DashboardShell>
   );
