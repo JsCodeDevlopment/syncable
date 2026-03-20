@@ -19,7 +19,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { toast } from "@/components/ui/use-toast"
 import { calculateDuration, formatDuration } from "@/lib/db"
 import { formatDateBR, formatTimeBR, getNowInBrazil, isSameDayBR } from "@/lib/timezone"
-import { Trash2 } from "lucide-react"
+import { Clock, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { EditTimeEntry } from "./edit-time-entry"
 
@@ -164,8 +164,8 @@ export function RecentEntries({ userId }: { userId: number }) {
   }
 
   return (
-    <ScrollArea className="h-[300px]">
-      <div className="space-y-4">
+    <ScrollArea className="h-[400px] pr-4">
+      <div className="space-y-3">
         {entries.length > 0 ? (
           entries.map((entry) => {
             const startTime = new Date(entry.start_time)
@@ -183,61 +183,93 @@ export function RecentEntries({ userId }: { userId: number }) {
               })) || []
 
             return (
-              <div key={entry.id} className="flex items-center justify-between border-b pb-4">
-                <div className="space-y-1">
-                  <div className="font-medium">{formatDate(entry.start_time)}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {formatTimeBR(startTime)} - {endTime ? formatTimeBR(endTime) : "In Progress"}
+              <div key={entry.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors gap-3 relative group">
+                <div className="flex items-start gap-3">
+                  <div className={`mt-1.5 h-2.5 w-2.5 rounded-full ring-2 ring-background ${entry.status === "active" ? "bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" : "bg-muted-foreground/30"}`} />
+                  <div className="space-y-1">
+                    <div className="font-semibold text-sm flex items-center gap-2">
+                      {formatDate(entry.start_time)}
+                      {entry.status === "active" && (
+                        <Badge variant="default" className="text-[10px] h-5 px-1.5 bg-green-500 hover:bg-green-600 border-none shadow-sm">
+                          Active
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <span className="inline-flex items-center justify-center min-w-[60px] px-1.5 py-0.5 rounded-md bg-muted/50 border border-border/50 text-center font-mono text-[11px] font-medium text-foreground/80">
+                        {formatTimeBR(startTime)}
+                      </span>
+                      <span className="text-muted-foreground/40 text-[10px] uppercase font-bold tracking-wider">to</span>
+                      <span className="inline-flex items-center justify-center min-w-[60px] px-1.5 py-0.5 rounded-md bg-muted/50 border border-border/50 text-center font-mono text-[11px] font-medium text-foreground/80">
+                        {endTime ? formatTimeBR(endTime) : "..."}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <div className="text-right space-y-1">
-                  <div className="font-medium">{formatDuration(netDuration)}</div>
-                  <div className="text-sm text-muted-foreground">Breaks: {formatDuration(breakDuration)}</div>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <Badge variant="outline" className="mr-2">
-                    {entry.status === "completed" ? "Completed" : entry.status === "active" ? "Active" : entry.status}
-                  </Badge>
-                  <EditTimeEntry
-                    userId={userId}
-                    timeEntryId={entry.id}
-                    initialStartTime={startTime}
-                    initialEndTime={endTime}
-                    breaks={formattedBreaks}
-                    onSuccess={refreshEntries}
-                  />
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" onClick={() => setEntryToDelete(entry.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Time Entry</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete this time entry? This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setEntryToDelete(null)}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={handleDeleteEntry}
-                          disabled={isDeleting}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          {isDeleting ? "Deleting..." : "Delete"}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+
+                <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto mt-1 sm:mt-0 pl-5 sm:pl-0">
+                  <div className="grid grid-cols-2 sm:grid-cols-1 gap-x-8 gap-y-0.5 text-right min-w-[90px]">
+                    <div className="text-sm font-bold tabular-nums tracking-tight">
+                      {formatDuration(netDuration)}
+                    </div>
+                    {breakDuration > 0 && (
+                      <div className="text-[11px] text-muted-foreground tabular-nums flex items-center justify-end gap-1">
+                        <span className="h-1.5 w-1.5 rounded-full bg-orange-400/50"></span>
+                        {formatDuration(breakDuration)} break
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
+                    <EditTimeEntry
+                      userId={userId}
+                      timeEntryId={entry.id}
+                      initialStartTime={startTime}
+                      initialEndTime={endTime}
+                      breaks={formattedBreaks}
+                      onSuccess={refreshEntries}
+                    />
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={() => setEntryToDelete(entry.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Time Entry</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete this time entry? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel onClick={() => setEntryToDelete(null)}>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleDeleteEntry}
+                            disabled={isDeleting}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            {isDeleting ? "Deleting..." : "Delete"}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
               </div>
             )
           })
         ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            No time entries yet. Start tracking your time to see entries here.
+          <div className="flex flex-col items-center justify-center py-16 text-center space-y-4 text-muted-foreground/60">
+            <div className="h-16 w-16 rounded-full bg-muted/50 flex items-center justify-center">
+              <Clock className="h-8 w-8 opacity-50" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="font-medium text-foreground">No entries yet</h3>
+              <p className="text-sm max-w-[220px] mx-auto">
+                Start tracking your time to see your activity history here.
+              </p>
+            </div>
           </div>
         )}
       </div>

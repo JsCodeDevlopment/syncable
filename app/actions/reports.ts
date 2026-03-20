@@ -88,7 +88,7 @@ export async function generateReport(
     console.log("Found entries:", entriesResult.length);
 
     // Format the entries
-    const entries = entriesResult.map((entry) => {
+    const entries = entriesResult.map((entry: any) => {
       const startTime = new Date(entry.start_time);
       const endTime = entry.end_time ? new Date(entry.end_time) : null;
       const duration = Number.parseFloat(entry.duration);
@@ -108,12 +108,12 @@ export async function generateReport(
 
     // Calculate summary
     const totalDuration = entries.reduce(
-      (sum, entry) => sum + entry.duration,
+      (sum: number, entry: { duration: number }) => sum + entry.duration,
       0
     );
-    const totalBreaks = entries.reduce((sum, entry) => sum + entry.breaks, 0);
+    const totalBreaks = entries.reduce((sum: number, entry: { breaks: number }) => sum + entry.breaks, 0);
     const totalNetWork = totalDuration - totalBreaks;
-    const daysWorked = new Set(entries.map((entry) => entry.date)).size;
+    const daysWorked = new Set(entries.map((entry: { date: string }) => entry.date)).size;
     const averageDailyWork = daysWorked > 0 ? totalNetWork / daysWorked : 0;
 
     return {
@@ -372,6 +372,57 @@ export async function deleteSharedReport(
     return {
       success: false,
       error: "Failed to delete shared report. Database error.",
+    };
+  }
+}
+
+// Delete multiple shared reports
+export async function deleteSharedReports(
+  reportIds: number[],
+  userId: number
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (reportIds.length === 0) {
+      return { success: true };
+    }
+
+    let reportIdsString = reportIds.join(',');
+    // Verify the reports belong to the user
+    // Since neon driver might not support ANY(${reportIds}), we can use a simpler approach or a loop if needed,
+    // but a single query is better. Let's try direct deletion with WHERE user_id check.
+
+    // We can't easily pass an array to `IN` with the current `sql` tag usage unless we format manually or iterate.
+    // However, neon's `sql` usually supports arrays. Let's try to be safe iterate or use dynamic construction if needed.
+    // Actually, `sql` template literal usually handles arrays for IN clauses if passed directly or we can construct user-side checks.
+
+    // Safe implementation: Delete where ID in list AND user_id matches.
+    // Since we don't know the exact binding for arrays in this `neon` setup (it varies), 
+    // we can just loop for safety, or try to pass it. 
+    // Given the small number of reports likely, a loop isn't terrible, but a single query is preferred.
+    // Let's assume standard postgres behavior. 
+
+    // Constructing an ANY query is safer if supported.
+    // await sql`DELETE FROM shared_reports WHERE id = ANY(${reportIds}) AND user_id = ${userId}`
+
+    // However, to be absolutely safe without testing the driver capabilities right now, 
+    // I will use a loop since I can't verify if `neon` driver here supports `ANY` array binding out of the box.
+    // Wait, the `neon` serverless driver supports array parameters usually.
+
+    // Let's simpler:
+    for (const id of reportIds) {
+      await sql`
+            DELETE FROM shared_reports
+            WHERE id = ${id} AND user_id = ${userId}
+        `;
+    }
+
+    revalidatePath("/reports");
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting shared reports:", error);
+    return {
+      success: false,
+      error: "Failed to delete shared reports. Database error.",
     };
   }
 }
