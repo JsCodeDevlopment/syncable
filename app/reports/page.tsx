@@ -101,6 +101,7 @@ export default function ReportsPage() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const [reportCreatedSuccess, setReportCreatedSuccess] = useState(false);
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [userData, setUserData] = useState<any>(null);
   const reportResultRef = useRef<HTMLDivElement>(null);
@@ -289,7 +290,7 @@ export default function ReportsPage() {
     }
   };
 
-  const handleDownloadReport = async () => {
+  const handleDownloadReport = (format: "csv" | "pdf") => {
     if (!reportData) {
       toast({
         title: "No report data",
@@ -299,75 +300,82 @@ export default function ReportsPage() {
       return;
     }
 
+    if (format === "pdf") {
+      toast({
+        title: "Generating PDF",
+        description:
+          "Your document is being prepared. Choose 'Save as PDF' in the print dialog.",
+      });
+      window.print();
+      return;
+    }
+
     setIsDownloading(true);
 
     try {
-      // Create a CSV string
-      const headers = [
-        "Date",
-        "Start Time",
-        "End Time",
-        "Duration",
-        "Breaks",
-        "Net Work",
+      // Create a fancy CSV string with header info
+      const userName = userData?.name || "User";
+      const fileDate = new Date().toISOString().split("T")[0];
+
+      const titleLines = [
+        "=========================================",
+        `      RELATÓRIO SYNCABLE - ${userName.toUpperCase()}      `,
+        "=========================================",
+        `Período: ${startDate ? formatDateForDisplay(startDate) : "N/A"} até ${endDate ? formatDateForDisplay(endDate) : "N/A"}`,
+        `Gerado em: ${new Date().toLocaleString()}`,
+        "",
+        "DETALHAMENTO DIÁRIO",
+        "----------------------------------------",
       ];
-      const rows = reportData.entries.map((entry: any) => [
+
+      const headers = [
+        "Data",
+        "Início",
+        "Fim",
+        "Duração",
+        "Intervalo",
+        "Líquido",
+      ];
+
+      const dataRows = reportData.entries.map((entry: any) => [
         entry.date,
         entry.startTime,
-        entry.endTime || "In progress",
+        entry.endTime || "Em execução",
         formatDuration(entry.duration),
         formatDuration(entry.breaks),
         formatDuration(entry.netWork),
       ]);
 
-      // Add summary row
-      rows.push([]);
-      rows.push(["Summary"]);
-      rows.push([
-        "Total Duration",
+      const summaryLines = [
         "",
-        "",
-        formatDuration(reportData.summary.totalDuration),
-      ]);
-      rows.push([
-        "Total Breaks",
-        "",
-        "",
-        formatDuration(reportData.summary.totalBreaks),
-      ]);
-      rows.push([
-        "Total Net Work",
-        "",
-        "",
-        formatDuration(reportData.summary.totalNetWork),
-      ]);
-      rows.push([
-        "Days Worked",
-        "",
-        "",
-        reportData.summary.daysWorked.toString(),
-      ]);
-      rows.push([
-        "Average Daily Work",
-        "",
-        "",
-        formatDuration(reportData.summary.averageDailyWork),
-      ]);
+        "----------------------------------------",
+        "RESUMO DO PERÍODO",
+        "----------------------------------------",
+        `Total de Horas Trabalhadas;${formatDuration(reportData.summary.totalNetWork)}`,
+        `Total de Pausas;${formatDuration(reportData.summary.totalBreaks)}`,
+        `Total Acumulado (Bruto);${formatDuration(reportData.summary.totalDuration)}`,
+        `Total de Dias Registrados;${reportData.summary.daysWorked}`,
+        `Média Diária de Trabalho;${formatDuration(reportData.summary.averageDailyWork)}`,
+        "----------------------------------------",
+      ];
 
-      const csvContent = [
-        headers.join(","),
-        ...rows.map((row: any[]) => row.join(",")),
-      ].join("\n");
+      // Use semicolon for better Excel compatibility in PT-BR locale
+      const separator = ";";
+      const csvContent =
+        "\ufeff" +
+        [
+          ...titleLines.map((line) => line),
+          headers.join(separator),
+          ...dataRows.map((row: any[]) => row.join(separator)),
+          ...summaryLines,
+        ].join("\n");
 
       // Create a blob and download it
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.setAttribute("href", url);
-      link.setAttribute(
-        "download",
-        `syncable-report-${new Date().toISOString().split("T")[0]}.csv`,
-      );
+      link.setAttribute("download", `Relatorio_Syncable_${fileDate}.csv`);
       link.style.visibility = "hidden";
       document.body.appendChild(link);
       link.click();
@@ -380,8 +388,8 @@ export default function ReportsPage() {
     } catch (error) {
       console.error("Error downloading report:", error);
       toast({
-        title: "Error",
-        description: "Failed to download report",
+        title: "Download failed",
+        description: "Could not generate the report file.",
         variant: "destructive",
       });
     } finally {
@@ -953,15 +961,76 @@ export default function ReportsPage() {
                   </DialogContent>
                 </Dialog>
 
-                <Button
-                  variant="outline"
-                  size="lg"
-                  disabled={isDownloading}
-                  className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-900/10 dark:text-blue-400 dark:border-blue-900/30 transition-all hover:scale-105 active:scale-95 px-6 shadow-lg shadow-blue-500/10"
+                <Dialog
+                  open={isDownloadModalOpen}
+                  onOpenChange={setIsDownloadModalOpen}
                 >
-                  <Download className="mr-2 h-5 w-5" />
-                  Export PDF/SVG
-                </Button>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      onClick={() => setIsDownloadModalOpen(true)}
+                      className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-900/10 dark:text-blue-400 dark:border-blue-900/30 transition-all hover:scale-105 active:scale-95 px-6 shadow-lg shadow-blue-500/10"
+                    >
+                      <Download className="mr-2 h-5 w-5" />
+                      Export / Download
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                        <Download className="h-5 w-5 text-primary" />
+                        Export Report
+                      </DialogTitle>
+                      <DialogDescription>
+                        Choose the format for your generated report.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid grid-cols-2 gap-4 py-8">
+                      <div className="relative group">
+                        <Button
+                          variant="outline"
+                          disabled
+                          className="h-32 w-full flex flex-col items-center justify-center gap-2 grayscale brightness-75 opacity-70 cursor-not-allowed"
+                        >
+                          <FileText className="h-10 w-10 text-red-500" />
+                          <span className="font-bold text-lg">
+                            PDF Document
+                          </span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                            Digital Sheet
+                          </span>
+                        </Button>
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="bg-primary px-3 py-1 rounded-full text-[10px] text-black font-bold shadow-lg rotate-12 -translate-y-4">
+                            COMING SOON
+                          </div>
+                        </div>
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        className="h-32 flex flex-col items-center justify-center gap-2 hover:border-primary hover:bg-primary/5 transition-all group"
+                        onClick={() => {
+                          handleDownloadReport("csv");
+                          setIsDownloadModalOpen(false);
+                        }}
+                      >
+                        <TableIcon className="h-10 w-10 text-green-600 group-hover:scale-110 transition-transform" />
+                        <span className="font-bold text-lg">CSV Sheet</span>
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                          Excel / Data
+                        </span>
+                      </Button>
+                    </div>
+                    <DialogFooter className="sm:justify-center border-t pt-4">
+                      <p className="text-[10px] text-center text-muted-foreground italic max-w-[80%]">
+                        Ao escolher PDF, utilize a função &quot;Salvar como
+                        PDF&quot; na janela de impressão do sistema.
+                      </p>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </div>
             </div>
 
@@ -1204,6 +1273,109 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
       </div>
+      {/* Hidden Print Section for PDF Export */}
+      {reportData && (
+        <div className="hidden print:block p-8 font-sans bg-white text-black min-h-screen">
+          <div className="border-b-2 border-black pb-4 mb-8">
+            <h1 className="text-3xl font-bold uppercase tracking-tighter">
+              Relatório de Horas
+            </h1>
+            <p className="text-xl">Syncable Time Tracking System</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-8 mb-12">
+            <div className="space-y-1">
+              <p className="text-sm font-bold uppercase text-gray-500">
+                Usuário
+              </p>
+              <p className="text-lg font-semibold">
+                {userData?.name || "Usuário Syncable"}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-bold uppercase text-gray-500">
+                Período
+              </p>
+              <p className="text-md leading-none">
+                {startDate ? formatDateForDisplay(startDate) : "N/A"} -
+                {endDate ? formatDateForDisplay(endDate) : "N/A"}
+              </p>
+            </div>
+          </div>
+
+          <table className="w-full mb-12 border-collapse">
+            <thead>
+              <tr className="border-b-2 border-black text-left">
+                <th className="py-2 pr-4 bg-gray-50">Data</th>
+                <th className="py-2 pr-4 bg-gray-50">Início</th>
+                <th className="py-2 pr-4 bg-gray-50">Fim</th>
+                <th className="py-2 pr-4 bg-gray-50">Duração</th>
+                <th className="py-2 pr-4 bg-gray-50">Intervalo</th>
+                <th className="py-2 bg-gray-50">Líquido</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reportData.entries.map((entry: any, i: number) => (
+                <tr key={i} className="border-b border-gray-200">
+                  <td className="py-2 pr-4">{entry.date}</td>
+                  <td className="py-2 pr-4">{entry.startTime}</td>
+                  <td className="py-2 pr-4">
+                    {entry.endTime || "Em execução"}
+                  </td>
+                  <td className="py-2 pr-4">
+                    {formatDuration(entry.duration)}
+                  </td>
+                  <td className="py-2 pr-4">{formatDuration(entry.breaks)}</td>
+                  <td className="py-2">{formatDuration(entry.netWork)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+            <h2 className="text-xl font-bold mb-4 uppercase tracking-wider text-gray-700">
+              Resumo do Período
+            </h2>
+            <div className="grid grid-cols-2 gap-x-12 gap-y-4">
+              <div className="flex justify-between border-b pb-1">
+                <span className="text-gray-600">Trabalho Líquido Total</span>
+                <span className="font-mono font-bold">
+                  {formatDuration(reportData.summary.totalNetWork)}
+                </span>
+              </div>
+              <div className="flex justify-between border-b pb-1">
+                <span className="text-gray-600">Total de Pausas</span>
+                <span className="font-mono">
+                  {formatDuration(reportData.summary.totalBreaks)}
+                </span>
+              </div>
+              <div className="flex justify-between border-b pb-1">
+                <span className="text-gray-600">Acumulado Bruto</span>
+                <span className="font-mono">
+                  {formatDuration(reportData.summary.totalDuration)}
+                </span>
+              </div>
+              <div className="flex justify-between border-b pb-1">
+                <span className="text-gray-600">Dias Trabalhados</span>
+                <span className="font-mono">
+                  {reportData.summary.daysWorked}
+                </span>
+              </div>
+              <div className="flex justify-between font-bold pt-2 col-span-2 text-lg">
+                <span>Média Diária de Trabalho</span>
+                <span className="font-mono">
+                  {formatDuration(reportData.summary.averageDailyWork)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-20 pt-8 border-t border-gray-200 text-center text-xs text-gray-400 italic">
+            Este relatório foi gerado automaticamente pela plataforma Syncable
+            em {new Date().toLocaleString()}.
+          </div>
+        </div>
+      )}
     </DashboardShell>
   );
 }
