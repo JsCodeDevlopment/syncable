@@ -64,7 +64,7 @@ export async function generateReport(
     });
 
     // Get time entries in the date range
-    const entriesResult = await sql`
+    const entriesResult = (await sql`
       SELECT 
         te.id, 
         te.start_time, 
@@ -83,7 +83,7 @@ export async function generateReport(
         te.start_time >= ${startDate} AND 
         te.start_time <= ${adjustedEndDate}
       ORDER BY te.start_time DESC
-    `;
+    `) as any;
 
     console.log("Found entries:", entriesResult.length);
 
@@ -167,13 +167,13 @@ export async function createSharedReport(
         : null;
 
     // Check if the shared_reports table exists
-    const tableCheck = await sql`
+    const tableCheck = (await sql`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
         WHERE table_schema = 'public' 
         AND table_name = 'shared_reports'
       );
-    `;
+    `) as any;
 
     const tableExists = tableCheck[0].exists;
 
@@ -195,7 +195,7 @@ export async function createSharedReport(
       `;
     }
 
-    const result = await sql`
+    const result = (await sql`
       INSERT INTO shared_reports (
         user_id, 
         share_token, 
@@ -213,7 +213,7 @@ export async function createSharedReport(
         ${expiresAt}
       )
       RETURNING *
-    `;
+    `) as any;
 
     console.log("Shared report created:", result[0]);
     return { success: true, data: result[0] as SharedReport };
@@ -238,13 +238,13 @@ export async function getSharedReport(
     console.log("Getting shared report with token:", shareToken);
 
     // Check if the shared_reports table exists
-    const tableCheck = await sql`
+    const tableCheck = (await sql`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
         WHERE table_schema = 'public' 
         AND table_name = 'shared_reports'
       );
-    `;
+    `) as any;
 
     const tableExists = tableCheck[0].exists;
 
@@ -254,11 +254,11 @@ export async function getSharedReport(
     }
 
     // Get the shared report
-    const reportResult = await sql`
+    const reportResult = (await sql`
       SELECT *
       FROM shared_reports
       WHERE share_token = ${shareToken}
-    `;
+    `) as any;
 
     if (reportResult.length === 0) {
       console.log("No shared report found with token:", shareToken);
@@ -310,13 +310,13 @@ export async function getUserSharedReports(
 ): Promise<{ success: boolean; data?: SharedReport[]; error?: string }> {
   try {
     // Check if the shared_reports table exists
-    const tableCheck = await sql`
+    const tableCheck = (await sql`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
         WHERE table_schema = 'public' 
         AND table_name = 'shared_reports'
       );
-    `;
+    `) as any;
 
     const tableExists = tableCheck[0].exists;
 
@@ -324,12 +324,12 @@ export async function getUserSharedReports(
       return { success: true, data: [] };
     }
 
-    const result = await sql`
+    const result = (await sql`
       SELECT *
       FROM shared_reports
       WHERE user_id = ${userId}
       ORDER BY created_at DESC
-    `;
+    `) as any;
 
     return { success: true, data: result as SharedReport[] };
   } catch (error) {
@@ -348,10 +348,10 @@ export async function deleteSharedReport(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     // Verify the report belongs to the user
-    const verifyResult = await sql`
+    const verifyResult = (await sql`
       SELECT id FROM shared_reports
       WHERE id = ${reportId} AND user_id = ${userId}
-    `;
+    `) as any;
 
     if (verifyResult.length === 0) {
       return {
@@ -426,3 +426,95 @@ export async function deleteSharedReports(
     };
   }
 }
+
+// Get global report aggregation based on all saved reports
+export async function getGlobalReportAggregation(
+  userId: number
+): Promise<{ success: boolean; data?: ReportData; error?: string }> {
+  try {
+    // 1. Get all saved reports for the user
+    // Directly fetch without calling the other action to simplify
+    const savedReportsRes = (await sql`
+        SELECT * FROM shared_reports WHERE user_id = ${userId}
+    `) as any;
+
+    if (savedReportsRes.length === 0) {
+      return { success: true, data: undefined };
+    }
+
+    // 2. Fetch all time entries that fall into at least one shared report's range
+    // We'll use a single query with subquery for efficiency
+    const entriesResult = (await sql`
+      SELECT 
+        te.id, 
+        te.start_time, 
+        te.end_time,
+        EXTRACT(EPOCH FROM (COALESCE(te.end_time, CURRENT_TIMESTAMP) - te.start_time)) * 1000 AS duration,
+        COALESCE(
+          (SELECT SUM(EXTRACT(EPOCH FROM (COALESCE(b.end_time, CURRENT_TIMESTAMP) - b.start_time)) * 1000)
+           FROM breaks b
+           WHERE b.time_entry_id = te.id),
+          0
+        ) AS break_time
+      FROM time_entries te
+      WHERE 
+        te.user_id = ${userId} AND 
+        te.status = 'completed' AND
+        EXISTS (
+          SELECT 1 FROM shared_reports sr
+          WHERE sr.user_id = ${userId}
+          AND te.start_time >= sr.start_date
+          AND te.start_time <= (sr.end_date + interval '1 day' - interval '1 millisecond')
+        )
+      ORDER BY te.start_time DESC
+    `) as any;
+
+    // 3. Format the entries (avoiding duplicates because of EXISTS)
+    const entries = entriesResult.map((entry: any) => {
+      const startTime = new Date(entry.start_time);
+      const endTime = entry.end_time ? new Date(entry.end_time) : null;
+      const duration = Number.parseFloat(entry.duration);
+      const breaks = Number.parseFloat(entry.break_time);
+      const netWork = duration - breaks;
+
+      return {
+        id: entry.id,
+        date: formatDateForDisplay(startTime),
+        startTime: formatTimeForDisplay(startTime),
+        endTime: endTime ? formatTimeForDisplay(endTime) : null,
+        duration,
+        breaks,
+        netWork,
+      };
+    });
+
+    // 4. Calculate summary
+    const totalDuration = entries.reduce((sum: number, entry: any) => sum + entry.duration, 0);
+    const totalBreaks = entries.reduce((sum: number, entry: any) => sum + entry.breaks, 0);
+    const totalNetWork = totalDuration - totalBreaks;
+    const daysWorkedSet = new Set(entries.map((entry: any) => entry.date));
+    const daysWorked = daysWorkedSet.size;
+    const averageDailyWork = daysWorked > 0 ? totalNetWork / daysWorked : 0;
+
+    return {
+      success: true,
+      data: {
+        entries,
+        summary: {
+          totalDuration,
+          totalBreaks,
+          totalNetWork,
+          averageDailyWork,
+          daysWorked,
+        },
+      },
+    };
+  } catch (error) {
+    console.error("Error getting global report aggregation:", error);
+    return {
+      success: false,
+      error: "Failed to aggregate reports. Database error.",
+    };
+  }
+}
+
