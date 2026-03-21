@@ -10,7 +10,7 @@ import {
 } from "@/app/actions/time-entries";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
-import { formatDuration } from "@/lib/format-duration";
+import { formatDuration, formatTimer } from "@/lib/format-duration";
 import { Coffee, LogOut, Play } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ManualTimeEntry } from "./manual-time-entry";
@@ -298,14 +298,11 @@ export function TimeTracker({ userId }: { userId: number }) {
           <div className="text-7xl font-bold tracking-tighter tabular-nums text-foreground">
             {status === "idle"
               ? "00:00"
-              : formatDuration(
+              : formatTimer(
                   elapsedTime -
                     totalBreakTime -
                     (status === "break" ? breakTime : 0),
-                )
-                  .split(" ")[0]
-                  .replace("h", ":")
-                  .replace("m", "")}
+                )}
           </div>
           <div className="text-sm text-muted-foreground mt-2 font-medium">
             {status === "break"
