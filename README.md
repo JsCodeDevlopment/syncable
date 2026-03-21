@@ -6,102 +6,70 @@ Plataforma moderna, intuitiva e responsiva desenvolvida com **Next.js 15**, foca
   <img alt="Banner do Syncable" title="#Banner" style="object-fit: cover; width: 100%; max-height: 520px" src="public/preview.webp" />
 </h1>
 
-## Funcionalidades e Módulos
+## 🚀 Funcionalidades e Módulos Atualizados
 
-- 🌓 **Interface Premium:** Design moderno com suporte nativo a temas Claro/Escuro via Tailwind CSS.
-- ⏱️ **Registro de Ponto em Tempo Real:** Dashboard interativo para registro instantâneo de entrada, saída e controle de intervalos (pausas).
-- 📊 **Estatísticas Avançadas:** Visualização dinâmica de horas trabalhadas, médias semanais e mensais através de gráficos interativos com **Recharts**.
-- 📂 **Gestão de Entradas Manuais:** Flexibilidade para adicionar, editar ou excluir registros históricos, facilitando correções retroativas.
-- 📄 **Relatórios Inteligentes:** Geração de relatórios com filtros por período e visualização detalhada de jornadas, breaks e horas líquidas.
-- 🔗 **Compartilhamento Seguro:** Sistema de links públicos temporários (Shared Reports) protegidos por tokens únicos, permitindo o compartilhamento seguro com gestores.
-- ⚙️ **Configurações de Conta:** Gestão de perfil, preferências de exibição de tempo e segurança integrada.
-- 📱 **Mobile First:** Experiência totalmente adaptativa, garantindo produtividade tanto no Desktop quanto em dispositivos móveis.
+- 🌓 **Interface Premium Elevada:** Design moderno com suporte nativo a temas Claro/Escuro via Tailwind CSS e micro-animações para feedback de usuário.
+- ⏱️ **Registro de Ponto Inteligente:** Dashboard interativo para registro instantâneo de entrada, saída e controle de intervalos com cronômetro reativo.
+- 📊 **Estatísticas de Alta Fidelidade:** Cards premium com métricas consolidadas (Total Trabalhado, Pausas, Combinado) e gráficos dinâmicos com **Recharts**.
+- 📄 **Novo Workflow de Relatórios:**
+  - **Geração via Modal:** Interface focada que substitui formulários estáticos por um fluxo intuitivo de geração.
+  - **Atalhos Rápidos:** Botões para seleção instantânea de logs Diários, Semanais ou Mensais.
+  - **Filtros Dinâmicos:** Escolha entre Visão Resumida, Detalhada ou Apenas Entradas.
+- 🔗 **Compartilhamento Avançado:**
+  - Geração de links públicos temporários com **data de expiração**.
+  - Controle de privacidade: Opção de exibir ou ocultar **Insights de Produtividade** no link compartilhado.
+- 📥 **Exportação de Dados Otimizada:**
+  - **Excel/CSV Master:** Arquivo formatado com separadores de sessão, banners personalizados e suporte total a acentos (UTF-8 BOM) para compatibilidade perfeita com Excel.
+  - **PDF Digital (Beta):** Visualização de impressão estruturada para salvamento em PDF.
 
-## Estrutura do Projeto
+## 🏗️ Estrutura do Projeto
 
 ```txt
 app/
 ├── (auth)/                         # Fluxos de autenticação (Login e Registro)
-├── dashboard/                      # O coração da plataforma: métricas e tracker
-├── reports/                        # Módulo de filtragem e geração de relatórios
-├── shared-report/                  # Visualização pública anônima via tokens
-├── settings/                       # Painel de controle do usuário e preferências
+├── dashboard/                      # Métricas premium e widget de tracker
+├── reports/                        # Módulo de geração e exportação (Novo Modal Workflow)
+├── shared-report/                  # Visualização pública anônima dinâmica
 ├── actions/                        # Core de negócios (Server Actions)
 │   ├── time-entries.ts             # Lógica de punch-in/out e intervalos
-│   ├── reports.ts                  # Engine de processamento de dados para relatórios
-│   ├── dashboard-summary.ts        # Agregador de métricas para o dashboard
-│   └── user-settings.ts            # Gestão de preferências e perfil
+│   ├── reports.ts                  # Engine de processamento e segurança de links
+│   └── dashboard-summary.ts        # Agregador de métricas premium
 ├── components/                     # Componentes de interface (UI & UX)
-│   ├── time-tracker.tsx            # Widget interativo de controle de ponto
-│   ├── recent-entries.tsx          # Feed de atividades recentes
-│   ├── stats/                      # Gráficos e módulos de estatísticas
+│   ├── time-tracker.tsx            # Widget interativo com cronômetro
+│   ├── report-insights.tsx         # Cards de produtividade e benchmarks
 │   └── ui/                         # Base atômica Shadcn UI + Radix
-├── lib/                            # Utilitários, hooks e configuração de DB
-└── public/                         # Ativos estáticos e capturas de tela
 ```
 
-## Arquitetura e Decisões de Design
+## 🧠 Arquitetura e Decisões de Design
 
-### Sincronização em Tempo Real (Server Actions & Neon)
+### Sincronização e Performance
 
-Diferente de arquiteturas que utilizam APIs REST ou GraphQL tradicionais, o **Syncable** utiliza o poder do **Next.js Server Actions** para interagir diretamente com o banco de dados **Neon Serverless (PostgreSQL) através do driver `@neondatabase/serverless`**.
-Isso elimina o overhead de rede e garante que a lógica de negócio esteja sempre próxima aos dados, enquanto o TypeScript assegura a integridade dos dados de ponta a ponta.
+O **Syncable** utiliza **Next.js Server Actions** para interagir diretamente com o banco de dados **Neon Serverless (PostgreSQL)**.
 
-### Fluxo de Trabalho do Time Tracker
+- **Cold Starts Zero:** Resposta instantânea graças ao driver `@neondatabase/serverless`.
+- **Relatórios On-the-fly:** O processamento de dados para exportação ocorre em tempo de execução, garantindo que o CSV reflita o estado exato do banco.
 
-Abaixo está o fluxo simplificado de como o sistema gerencia as jornadas de trabalho:
+### Fluxo de Geração de Relatórios (Shared Link)
 
 ```mermaid
-flowchart TD
-    %% Nós do diagrama
-    A[Usuário abre o Dashboard]
-    B[Widget TimeTracker]
-    C{Usuário clica em 'Iniciar'?}
-    D["Server Action: startTimeEntry"]
-    E[Neon SQL: INSERT INTO time_entries]
-    F[RevalidatePath: /dashboard]
-    G[UI Reativa: Estado Ativo]
-
-    H{Usuário clica em 'Pausar'?}
-    I["Server Action: startBreak"]
-    J[Neon SQL: INSERT INTO breaks]
-    K[RevalidatePath: /dashboard]
-
-    L{Usuário clica em 'Finalizar'?}
-    M["Server Action: endTimeEntry"]
-    N[Neon SQL: UPDATE status='completed']
-    P[Cálculo de Duração & Total Break]
-
-    %% Conexões
-    A --> B
-    B --> C
-    C -->|Sim| D
-    D --> E
-    E --> F
-    F --> G
-
-    G -.-> H
-    H -->|Sim| I
-    I --> J
-    J --> K
-    K --> G
-
-    G -.-> L
-    L -->|Sim| M
-    M --> N
-    N --> P
-    P --> F
+flowchart LR
+    A[Usuário Gera Relatório] --> B[Modal de Exportação]
+    B --> C{Tipo de Ação?}
+    C -->|Download| D[Geração de CSV UTF-8 BOM]
+    C -->|Share| E[Server Action: createSharedReport]
+    E --> F[Inserção com Token e Expiração]
+    F --> G[Link Público Gerado]
+    G --> H[Visualização Exclusiva do Destinatário]
 ```
 
-### Por Que Neon Serverless (Raw SQL)?
+### Segurança e Privacidade
 
-Decidimos utilizar o driver sem servidor do **Neon** com consultas SQL puras (raw queries) em vez de um ORM pesado (como Prisma ou TypeORM). Isso resulta em:
+Cada link de compartilhamento é protegido por um **UUID único** e pode ser configurado com:
 
-1. **Cold Starts Zero:** Resposta instantânea nas Server Actions.
-2. **Consultas Otimizadas:** Controle granular sobre agregações complexas de tempo e horas.
-3. **Leveza:** Redução drástica no tamanho final do pacote servido pelo Next.js.
+1. **Duração Limitada:** Expiração automática em 1, 7, 30 ou 90 dias.
+2. **Toggle de Insights:** O usuário decide se o destinatário verá as análises de produtividade ou apenas a tabela de horas bruta.
 
-## Tecnologias Utilizadas
+## 🛠️ Tecnologias Utilizadas
 
 <div align="center">
   <img src="https://img.shields.io/badge/Next.js_15-000?style=for-the-badge&logo=next.js&logoColor=white" />
@@ -116,15 +84,13 @@ Decidimos utilizar o driver sem servidor do **Neon** com consultas SQL puras (ra
   <img src="https://img.shields.io/badge/Vercel-000?style=for-the-badge&logo=vercel&logoColor=white" />
 </div>
 
-> Tecnologias-chave: SSR com React 19 / Next.js 15, Neon Serverless, Recharts, Shadcn UI, Zustand para estado leve e Zod para validação.
-
-## Desenvolvedor
+## 👨‍💻 Desenvolvedor
 
 | Foto                                                                                                                             | Nome                                                 | Cargo                                      |
 | :------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------- | :----------------------------------------- |
 | <img src="https://avatars.githubusercontent.com/u/100796752?s=400&u=ae99bd456c6b274cd934d85a374a44340140e222&v=4" width="100" /> | [Jonatas Silva](https://github.com/JsCodeDevlopment) | Senior Software Engineer / CTO & Tech Lead |
 
-## Licença
+## 📄 Licença
 
 Este projeto é privado e de uso restrito da **Syncable Corporation**.
 
