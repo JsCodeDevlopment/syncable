@@ -22,6 +22,8 @@ import {
 import Link from "next/link";
 import { requireAuth } from "../actions/auth";
 import { getDashboardSummary } from "../actions/dashboard-summary";
+import { getDashboardInsights } from "../actions/dashboard-insights";
+import { ReportInsights } from "@/components/report-insights";
 
 export default async function DashboardPage() {
   // Check if user is authenticated
@@ -30,6 +32,9 @@ export default async function DashboardPage() {
   // Get dashboard summary data
   const summaryResult = await getDashboardSummary(user.id);
   const summary = summaryResult.success ? summaryResult.data : null;
+
+  const insightsResult = await getDashboardInsights(user.id);
+  const insights = insightsResult.success ? insightsResult.data : null;
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -57,7 +62,9 @@ export default async function DashboardPage() {
         </div>
       </DashboardHeader>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="space-y-6">
+        {insights && <ReportInsights insightsData={insights} />}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="hover:shadow-lg transition-all border-l-4 border-l-blue-500 bg-gradient-to-br from-white to-blue-50/50 dark:from-background dark:to-background overflow-hidden relative">
           <div className="absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-blue-500/10 blur-2xl" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -217,6 +224,7 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+      </div>
       </div>
     </DashboardShell>
   );

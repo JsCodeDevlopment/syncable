@@ -4,6 +4,7 @@ import { DashboardHeader } from "@/components/dashboard-header";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { DatePicker } from "@/components/date-picker";
 import { ReportChart } from "@/components/report-chart";
+import { ReportInsights } from "@/components/report-insights";
 import { ReportTable } from "@/components/report-table";
 import {
   AlertDialog,
@@ -59,19 +60,19 @@ import { formatDuration } from "@/lib/format-duration";
 import {
   Activity,
   BarChart,
-  Calendar,
+  CheckCircle2,
   Clock,
   Coffee,
+  Copy,
   Download,
   ExternalLink,
   FileText,
-  Filter,
   PieChart,
   Share,
   Table as TableIcon,
   Trash2,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getCurrentUser } from "../actions/auth";
 import {
   createSharedReport,
@@ -80,8 +81,8 @@ import {
   generateReport,
   getGlobalReportAggregation,
   getUserSharedReports,
-  type SharedReport,
   type ReportData,
+  type SharedReport,
 } from "../actions/reports";
 
 export default function ReportsPage() {
@@ -93,17 +94,25 @@ export default function ReportsPage() {
   const [shareLink, setShareLink] = useState("");
   const [isPublic, setIsPublic] = useState(false);
   const [shareDuration, setShareDuration] = useState("7");
+  const [showInsightsInShare, setShowInsightsInShare] = useState(true);
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
+  const [reportCreatedSuccess, setReportCreatedSuccess] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [userData, setUserData] = useState<any>(null);
+  const reportResultRef = useRef<HTMLDivElement>(null);
 
   const [reportData, setReportData] = useState<any>(null);
 
   const [savedReports, setSavedReports] = useState<SharedReport[]>([]);
   const [selectedReports, setSelectedReports] = useState<number[]>([]);
   const [isLoadingSavedReports, setIsLoadingSavedReports] = useState(false);
-  const [globalReportData, setGlobalReportData] = useState<ReportData | null>(null);
+  const [globalReportData, setGlobalReportData] = useState<ReportData | null>(
+    null,
+  );
   const [isFetchingGlobal, setIsFetchingGlobal] = useState(false);
 
   useEffect(() => {
@@ -113,6 +122,7 @@ export default function ReportsPage() {
         const user = await getCurrentUser();
         if (user) {
           setUserId(user.id);
+          setUserData(user);
         }
       } catch (error) {
         console.error("Error fetching user:", error);
@@ -121,6 +131,13 @@ export default function ReportsPage() {
 
     fetchUser();
   }, []);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+  };
 
   const fetchSavedReports = async () => {
     if (!userId) return;
@@ -191,6 +208,39 @@ export default function ReportsPage() {
     }
   }, [activeTab]);
 
+  const scrollToReport = () => {
+    setIsGenerateModalOpen(false);
+    // Increased timeout to ensure Modal close animation doesn't interfere with scroll
+    setTimeout(() => {
+      if (reportResultRef.current) {
+        reportResultRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+    }, 400);
+  };
+
+  const setShortcuts = (type: "daily" | "weekly" | "monthly") => {
+    const today = new Date();
+    setEndDate(today);
+
+    if (type === "daily") {
+      setStartDate(today);
+      setActiveTab("daily");
+    } else if (type === "weekly") {
+      const lastWeek = new Date();
+      lastWeek.setDate(today.getDate() - 7);
+      setStartDate(lastWeek);
+      setActiveTab("weekly");
+    } else if (type === "monthly") {
+      const lastMonth = new Date();
+      lastMonth.setMonth(today.getMonth() - 1);
+      setStartDate(lastMonth);
+      setActiveTab("monthly");
+    }
+  };
+
   const handleGenerateReport = async () => {
     if (!userId || !startDate || !endDate) {
       toast({
@@ -205,13 +255,6 @@ export default function ReportsPage() {
     setReportData(null); // Clear previous report data
 
     try {
-      console.log("Generating report for:", {
-        userId,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        activeTab,
-      });
-
       const result = await generateReport(
         userId,
         startDate,
@@ -220,10 +263,11 @@ export default function ReportsPage() {
       );
       console.log("Report generation result:", result);
 
-      if (result.success) {
+      if (result.success && result.data) {
         setReportData(result.data);
+        setReportCreatedSuccess(true);
         toast({
-          title: "Report generated",
+          title: "Report ready",
           description: "Your report has been generated successfully.",
         });
       } else {
@@ -373,6 +417,7 @@ export default function ReportsPage() {
         startDate,
         endDate,
         Number.parseInt(shareDuration),
+        showInsightsInShare,
       );
 
       if (result.success) {
@@ -488,211 +533,152 @@ export default function ReportsPage() {
   return (
     <DashboardShell>
       <DashboardHeader
-        heading="Reports & Analytics"
-        text="Analyze your productivity and export time tracking data."
+        heading={`${getGreeting()}${userData ? `, ${userData.name.split(" ")[0]}` : ""}!`}
+        text="Analyze your productivity and generate detailed time reports."
       >
-        <div className="flex space-x-2">
-          <Button
-            variant="outline"
-            onClick={handleDownloadReport}
-            disabled={!reportData || isDownloading}
-            className="hidden sm:flex"
+        <div className="flex items-center space-x-2">
+          <Dialog
+            open={isGenerateModalOpen}
+            onOpenChange={(open) => {
+              setIsGenerateModalOpen(open);
+              if (!open) setReportCreatedSuccess(false);
+            }}
           >
-            <Download className="mr-2 h-4 w-4" />
-            {isDownloading ? "Downloading..." : "Export CSV"}
-          </Button>
-          <Dialog>
             <DialogTrigger asChild>
-              <Button>
-                <Share className="mr-2 h-4 w-4" />
-                Share Report
+              <Button size="sm" className="bg-primary hover:bg-primary/90">
+                <FileText className="mr-2 h-4 w-4" />
+                Generate New Report
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
-                <DialogTitle>Share Report</DialogTitle>
+                <DialogTitle>Generate Report</DialogTitle>
                 <DialogDescription>
-                  Create a public link to share your time tracking report with
-                  others.
+                  Choose the period and format for your time report.
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="flex items-center space-x-2 p-4 border rounded-lg bg-muted/50">
-                  <Switch
-                    id="public-report"
-                    checked={isPublic}
-                    onCheckedChange={setIsPublic}
-                  />
-                  <div className="space-y-0.5">
-                    <Label htmlFor="public-report" className="text-base">
-                      Public Access
+
+              {!reportCreatedSuccess ? (
+                <div className="grid gap-6 py-4">
+                  <div className="grid gap-3">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Shortcuts
                     </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Allow anyone with the link to view this report
-                    </p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShortcuts("daily")}
+                        className={
+                          activeTab === "daily"
+                            ? "border-primary bg-primary/5"
+                            : ""
+                        }
+                      >
+                        Daily
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShortcuts("weekly")}
+                        className={
+                          activeTab === "weekly"
+                            ? "border-primary bg-primary/5"
+                            : ""
+                        }
+                      >
+                        Weekly
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShortcuts("monthly")}
+                        className={
+                          activeTab === "monthly"
+                            ? "border-primary bg-primary/5"
+                            : ""
+                        }
+                      >
+                        Monthly
+                      </Button>
+                    </div>
                   </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label>Start Date</Label>
+                      <DatePicker date={startDate} setDate={setStartDate} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>End Date</Label>
+                      <DatePicker date={endDate} setDate={setEndDate} />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label>Report Type</Label>
+                    <Select
+                      defaultValue={reportType}
+                      onValueChange={setReportType}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="summary">Summary View</SelectItem>
+                        <SelectItem value="detailed">Detailed View</SelectItem>
+                        <SelectItem value="entries">Entries Only</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Button
+                    onClick={handleGenerateReport}
+                    disabled={isGenerating}
+                    className="w-full mt-2"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        Generating...
+                      </>
+                    ) : (
+                      "Generate Report"
+                    )}
+                  </Button>
                 </div>
-
-                {isPublic && (
-                  <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                    {!shareLink && (
-                      <div className="grid gap-2">
-                        <Label htmlFor="share-duration">Link Expiration</Label>
-                        <Select
-                          value={shareDuration}
-                          onValueChange={setShareDuration}
-                        >
-                          <SelectTrigger id="share-duration">
-                            <SelectValue placeholder="Select duration" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="1">1 day</SelectItem>
-                            <SelectItem value="7">7 days</SelectItem>
-                            <SelectItem value="30">30 days</SelectItem>
-                            <SelectItem value="90">90 days</SelectItem>
-                            <SelectItem value="0">No expiration</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-
-                    {shareLink && (
-                      <div className="grid gap-2">
-                        <Label htmlFor="share-link">Share Link</Label>
-                        <div className="flex items-center space-x-2">
-                          <Input
-                            id="share-link"
-                            value={shareLink}
-                            readOnly
-                            onClick={(e) => e.currentTarget.select()}
-                            className="bg-muted"
-                          />
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => {
-                              navigator.clipboard.writeText(shareLink);
-                              toast({
-                                title: "Link copied",
-                                description:
-                                  "The share link has been copied to your clipboard.",
-                              });
-                            }}
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    )}
+              ) : (
+                <div className="py-10 flex flex-col items-center text-center animate-in zoom-in-95 duration-300">
+                  <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 mb-4">
+                    <CheckCircle2 className="h-10 w-10" />
                   </div>
-                )}
-              </div>
-              <DialogFooter>
-                {isPublic && !shareLink ? (
-                  <Button
-                    onClick={handleShareReport}
-                    disabled={isSharing}
-                    className="w-full sm:w-auto"
-                  >
-                    {isSharing ? "Generating..." : "Generate Link"}
+                  <h3 className="text-xl font-bold mb-2">Report Created!</h3>
+                  <p className="text-muted-foreground mb-8">
+                    Your report for the selected period has been generated and
+                    is ready for review.
+                  </p>
+                  <Button onClick={scrollToReport} className="w-full">
+                    View Report Results
                   </Button>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    onClick={() => setShareLink("")}
-                    className="w-full sm:w-auto"
-                  >
-                    Reset Link
-                  </Button>
-                )}
-              </DialogFooter>
+                </div>
+              )}
             </DialogContent>
           </Dialog>
         </div>
       </DashboardHeader>
 
-      <div className="grid gap-6">
-        {/* Filters Section */}
-        <Card className="border-t-4 border-t-primary shadow-sm">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                <Filter className="h-4 w-4" />
-              </div>
-              <div>
-                <CardTitle>Configuration</CardTitle>
-                <CardDescription>
-                  Customize parameters to generate your report
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="grid gap-2">
-                <Label className="flex items-center gap-2">
-                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                  Period
-                </Label>
-                <Tabs
-                  defaultValue="daily"
-                  value={activeTab}
-                  onValueChange={setActiveTab}
-                  className="w-full"
-                >
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="daily">Daily</TabsTrigger>
-                    <TabsTrigger value="weekly">Weekly</TabsTrigger>
-                    <TabsTrigger value="monthly">Monthly</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </div>
-              <div className="grid gap-2">
-                <Label>Start Date</Label>
-                <DatePicker date={startDate} setDate={setStartDate} />
-              </div>
-              <div className="grid gap-2">
-                <Label>End Date</Label>
-                <DatePicker date={endDate} setDate={setEndDate} />
-              </div>
-              <div className="grid gap-2">
-                <Label className="flex items-center gap-2">
-                  <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                  Report Type
-                </Label>
-                <Select defaultValue={reportType} onValueChange={setReportType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select report type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="summary">Summary View</SelectItem>
-                    <SelectItem value="detailed">Detailed View</SelectItem>
-                    <SelectItem value="entries">Entries Only</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="mt-6 flex justify-end">
-              <Button
-                onClick={handleGenerateReport}
-                disabled={isGenerating}
-                size="lg"
-                className="w-full sm:w-auto"
-              >
-                {isGenerating ? "Generating..." : "Generate Report"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Global Summary Section (shown if there are saved reports) */}
+      <div className="space-y-8">
+        {/* Global Summary Section */}
         {savedReports.length > 0 && globalReportData && (
           <div className="grid gap-6 animate-in fade-in slide-in-from-bottom-4">
-             <div className="grid gap-4 md:grid-cols-3">
+            <ReportInsights entries={globalReportData.entries} />
+            <div className="grid gap-4 md:grid-cols-3">
               <Card className="hover:shadow-lg transition-all border-l-4 border-l-blue-500 bg-gradient-to-br from-white to-blue-50/50 dark:from-background dark:to-background overflow-hidden relative">
                 <div className="absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-blue-500/10 blur-2xl" />
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Total Worked</CardTitle>
+                  <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                    Total Worked
+                  </CardTitle>
                   <div className="h-8 w-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
                     <Clock className="h-4 w-4" />
                   </div>
@@ -707,7 +693,9 @@ export default function ReportsPage() {
               <Card className="hover:shadow-lg transition-all border-l-4 border-l-orange-500 bg-gradient-to-br from-white to-orange-50/50 dark:from-background dark:to-background overflow-hidden relative">
                 <div className="absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-orange-500/10 blur-2xl" />
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Total Breaks</CardTitle>
+                  <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                    Total Breaks
+                  </CardTitle>
                   <div className="h-8 w-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400">
                     <Coffee className="h-4 w-4" />
                   </div>
@@ -722,7 +710,9 @@ export default function ReportsPage() {
               <Card className="hover:shadow-lg transition-all border-l-4 border-l-purple-500 bg-gradient-to-br from-white to-purple-50/50 dark:from-background dark:to-background overflow-hidden relative">
                 <div className="absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-purple-500/10 blur-2xl" />
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Total Combined</CardTitle>
+                  <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                    Total Combined
+                  </CardTitle>
                   <div className="h-8 w-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400">
                     <Activity className="h-4 w-4" />
                   </div>
@@ -739,8 +729,12 @@ export default function ReportsPage() {
               <CardHeader className="pb-2 bg-muted/30">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-base">Aggregated Activity</CardTitle>
-                    <CardDescription>Consolidated data from all generated reports</CardDescription>
+                    <CardTitle className="text-base">
+                      Aggregated Activity
+                    </CardTitle>
+                    <CardDescription>
+                      Consolidated data from all generated reports
+                    </CardDescription>
                   </div>
                   <div className="h-8 w-8 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
                     <BarChart className="h-4 w-4" />
@@ -783,8 +777,196 @@ export default function ReportsPage() {
 
         {/* Results Section */}
         {reportData && (
-          <div className="grid gap-6 animate-in fade-in slide-in-from-bottom-4">
-            <Card className="shadow-sm overflow-hidden">
+          <div
+            ref={reportResultRef}
+            className="grid gap-6 animate-in fade-in slide-in-from-bottom-4 scroll-mt-40"
+          >
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 bg-white/50 dark:bg-background/50 p-6 rounded-2xl border backdrop-blur-sm shadow-sm">
+              <div>
+                <h2 className="text-3xl font-extrabold tracking-tight">
+                  Report Results
+                </h2>
+                <p className="text-muted-foreground text-lg">
+                  Detailed productivity analysis for the selected period.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Re-implement Share Dialog here */}
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="default"
+                      size="lg"
+                      className="bg-primary hover:bg-primary/90  shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95 px-6"
+                      onClick={() => {
+                        setShareLink("");
+                        setIsPublic(false);
+                      }}
+                    >
+                      <Share className="mr-2 h-5 w-5" />
+                      Share & Publish
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Share Report</DialogTitle>
+                      <DialogDescription>
+                        Generate a shareable link for this specific result.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="flex items-center space-x-4 rounded-md border p-4 bg-muted/30">
+                        <Share className="h-5 w-5 text-primary" />
+                        <div className="flex-1 space-y-1">
+                          <p className="text-sm font-semibold">Public Access</p>
+                          <p className="text-xs text-muted-foreground">
+                            Enable to generate a shareable URL.
+                          </p>
+                        </div>
+                        <Switch
+                          checked={isPublic}
+                          onCheckedChange={setIsPublic}
+                          disabled={isSharing || !!shareLink}
+                        />
+                      </div>
+
+                      {isPublic && (
+                        <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                          <div className="grid gap-2">
+                            <Label
+                              htmlFor="duration"
+                              className="text-xs font-semibold uppercase text-muted-foreground"
+                            >
+                              Expiration
+                            </Label>
+                            <Select
+                              defaultValue={shareDuration}
+                              onValueChange={setShareDuration}
+                              disabled={isSharing || !!shareLink}
+                            >
+                              <SelectTrigger id="duration" className="h-9">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="1">1 Day</SelectItem>
+                                <SelectItem value="7">7 Days</SelectItem>
+                                <SelectItem value="30">30 Days</SelectItem>
+                                <SelectItem value="0">Never</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {shareLink && (
+                            <div className="space-y-2">
+                              <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                                Shareable Link
+                              </Label>
+                              <div className="flex gap-2">
+                                <div className="relative flex-1">
+                                  <Input
+                                    value={shareLink}
+                                    readOnly
+                                    className="bg-muted text-xs h-9 pr-10"
+                                  />
+                                  <div className="absolute right-3 top-2.5">
+                                    <ExternalLink className="h-4 w-4 opacity-30" />
+                                  </div>
+                                </div>
+                                <Button
+                                  size="icon"
+                                  variant="outline"
+                                  className={`h-9 w-9 transition-colors ${copiedLink ? "text-green-600 border-green-200 bg-green-50" : ""}`}
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(shareLink);
+                                    setCopiedLink(true);
+                                    setTimeout(
+                                      () => setCopiedLink(false),
+                                      2000,
+                                    );
+                                    toast({ title: "Link Copied!" });
+                                  }}
+                                  title="Copy Link"
+                                >
+                                  {copiedLink ? (
+                                    <CheckCircle2 className="h-4 w-4" />
+                                  ) : (
+                                    <Copy className="h-4 w-4" />
+                                  )}
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="outline"
+                                  className="h-9 w-9"
+                                  asChild
+                                  title="Open Link"
+                                >
+                                  <a
+                                    href={shareLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    <ExternalLink className="h-4 w-4 text-primary" />
+                                  </a>
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+
+                          {!shareLink && (
+                            <div className="flex items-center justify-between py-2 border-t pt-2">
+                              <div>
+                                <Label className="text-sm font-medium">
+                                  Extra Statistics
+                                </Label>
+                                <p className="text-[10px] text-muted-foreground">
+                                  Show performance insights cards
+                                </p>
+                              </div>
+                              <Switch
+                                checked={showInsightsInShare}
+                                onCheckedChange={setShowInsightsInShare}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <DialogFooter>
+                      {isPublic && !shareLink ? (
+                        <Button
+                          onClick={handleShareReport}
+                          disabled={isSharing}
+                          className="w-full h-11 text-base font-bold"
+                        >
+                          {isSharing ? "Creating..." : "Generate Public Link"}
+                        </Button>
+                      ) : shareLink ? (
+                        <Button
+                          variant="ghost"
+                          onClick={() => setShareLink("")}
+                          className="w-full"
+                        >
+                          Create New Link
+                        </Button>
+                      ) : null}
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
+                <Button
+                  variant="outline"
+                  size="lg"
+                  disabled={isDownloading}
+                  className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-900/10 dark:text-blue-400 dark:border-blue-900/30 transition-all hover:scale-105 active:scale-95 px-6 shadow-lg shadow-blue-500/10"
+                >
+                  <Download className="mr-2 h-5 w-5" />
+                  Export PDF/SVG
+                </Button>
+              </div>
+            </div>
+
+            <ReportInsights entries={reportData.entries} />
+            <Card className="shadow-sm overflow-hidden border-t-4 border-t-primary">
               <div className="bg-muted/30 border-b p-2">
                 <Tabs defaultValue="table" className="w-full">
                   <div className="flex items-center justify-between px-2">

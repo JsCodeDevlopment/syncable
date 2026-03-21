@@ -27,6 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ReportInsights } from "@/components/report-insights";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDuration } from "@/lib/format-duration";
 import {
@@ -154,6 +155,8 @@ export function DataPage({ token }: DataPageProps) {
               Shared Externally
             </Badge>
           </div>
+
+          {report.show_insights && <ReportInsights entries={reportData.entries} />}
 
           <div className="grid gap-6 md:grid-cols-3">
             <Card className="hover:shadow-lg transition-all border-l-4 border-l-blue-500 bg-gradient-to-br from-white to-blue-50/50 dark:from-background dark:to-background overflow-hidden relative">

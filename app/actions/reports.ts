@@ -31,6 +31,7 @@ export type SharedReport = {
   start_date: Date;
   end_date: Date;
   expires_at: Date | null;
+  show_insights: boolean;
   created_at: Date;
   updated_at: Date;
 };
@@ -144,7 +145,8 @@ export async function createSharedReport(
   reportType: "daily" | "weekly" | "monthly",
   startDate: Date,
   endDate: Date,
-  expiresInDays: number
+  expiresInDays: number,
+  showInsights: boolean = true
 ): Promise<{ success: boolean; data?: SharedReport; error?: string }> {
   try {
     console.log(
@@ -154,7 +156,9 @@ export async function createSharedReport(
       reportType,
       "expires in:",
       expiresInDays,
-      "days"
+      "days",
+      "show insights:",
+      showInsights
     );
 
     // Generate a unique token
@@ -189,11 +193,21 @@ export async function createSharedReport(
           start_date TIMESTAMP WITH TIME ZONE NOT NULL,
           end_date TIMESTAMP WITH TIME ZONE NOT NULL,
           expires_at TIMESTAMP WITH TIME ZONE,
+          show_insights BOOLEAN DEFAULT TRUE,
           created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
           updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
         );
       `;
     }
+
+    // Attempt to add show_insights column if it doesn't exist (for existing tables)
+    try {
+        await sql`ALTER TABLE shared_reports ADD COLUMN IF NOT EXISTS show_insights BOOLEAN DEFAULT TRUE`;
+    } catch (e) {
+        console.log("Column show_insights might already exist");
+    }
+
+    console.log("Schema check/update completed");
 
     const result = (await sql`
       INSERT INTO shared_reports (
@@ -202,7 +216,8 @@ export async function createSharedReport(
         report_type, 
         start_date, 
         end_date, 
-        expires_at
+        expires_at,
+        show_insights
       )
       VALUES (
         ${userId}, 
@@ -210,15 +225,16 @@ export async function createSharedReport(
         ${reportType}, 
         ${startDate}, 
         ${endDate}, 
-        ${expiresAt}
+        ${expiresAt},
+        ${showInsights}
       )
       RETURNING *
-    `) as any;
+    `) as any[];
 
-    console.log("Shared report created:", result[0]);
+    console.log("Shared report created successfully:", result[0]);
     return { success: true, data: result[0] as SharedReport };
   } catch (error) {
-    console.error("Error creating shared report:", error);
+    console.error("Critical error in createSharedReport:", error);
     return {
       success: false,
       error: "Failed to create shared report. Database error.",
@@ -329,8 +345,9 @@ export async function getUserSharedReports(
       FROM shared_reports
       WHERE user_id = ${userId}
       ORDER BY created_at DESC
-    `) as any;
+    `) as any[];
 
+    console.log("User shared reports fetched:", result.length);
     return { success: true, data: result as SharedReport[] };
   } catch (error) {
     console.error("Error getting user shared reports:", error);
