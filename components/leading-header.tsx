@@ -4,9 +4,9 @@ import Link from "next/link";
 
 export function LeadingHeader() {
   return (
-    <header className="border-b w-full">
-      <div className="flex w-full h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
+      <div className="container flex h-20 items-center justify-between mx-auto">
+        <div className="flex items-center gap-2 group cursor-pointer">
           <Image
             src="/images/syncable-logo.png"
             className="dark:invert"
@@ -15,12 +15,33 @@ export function LeadingHeader() {
             height={120}
           />
         </div>
-        <div className="ml-auto flex items-center gap-4">
+        <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
+          <Link
+            href="#features"
+            className="hover:text-primary transition-colors"
+          >
+            Features
+          </Link>
+          <Link
+            href="#how-it-works"
+            className="hover:text-primary transition-colors"
+          >
+            How it works
+          </Link>
+          <Link href="#faq" className="hover:text-primary transition-colors">
+            FAQ
+          </Link>
+        </nav>
+        <div className="flex items-center gap-4">
           <Link href="/login">
-            <Button variant="outline">Login</Button>
+            <Button variant="ghost" className="font-semibold">
+              Login
+            </Button>
           </Link>
           <Link href="/register">
-            <Button>Sign up</Button>
+            <Button className="font-bold shadow-lg shadow-primary/25">
+              Join Now
+            </Button>
           </Link>
         </div>
       </div>
