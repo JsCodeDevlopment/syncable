@@ -57,7 +57,11 @@ import { toast } from "@/components/ui/use-toast";
 import { formatDateForDisplay } from "@/lib/db";
 import { formatDuration } from "@/lib/format-duration";
 import {
+  Activity,
+  BarChart,
   Calendar,
+  Clock,
+  Coffee,
   Download,
   ExternalLink,
   FileText,
@@ -74,8 +78,10 @@ import {
   deleteSharedReport,
   deleteSharedReports,
   generateReport,
+  getGlobalReportAggregation,
   getUserSharedReports,
   type SharedReport,
+  type ReportData,
 } from "../actions/reports";
 
 export default function ReportsPage() {
@@ -97,6 +103,8 @@ export default function ReportsPage() {
   const [savedReports, setSavedReports] = useState<SharedReport[]>([]);
   const [selectedReports, setSelectedReports] = useState<number[]>([]);
   const [isLoadingSavedReports, setIsLoadingSavedReports] = useState(false);
+  const [globalReportData, setGlobalReportData] = useState<ReportData | null>(null);
+  const [isFetchingGlobal, setIsFetchingGlobal] = useState(false);
 
   useEffect(() => {
     // Get user ID using the server action
@@ -134,6 +142,31 @@ export default function ReportsPage() {
       fetchSavedReports();
     }
   }, [userId]);
+
+  const fetchGlobalAggregation = async () => {
+    if (!userId) return;
+    setIsFetchingGlobal(true);
+    try {
+      const result = await getGlobalReportAggregation(userId);
+      if (result.success && result.data) {
+        setGlobalReportData(result.data);
+      } else {
+        setGlobalReportData(null);
+      }
+    } catch (error) {
+      console.error("Error fetching global aggregation:", error);
+    } finally {
+      setIsFetchingGlobal(false);
+    }
+  };
+
+  useEffect(() => {
+    if (userId && savedReports.length > 0) {
+      fetchGlobalAggregation();
+    } else {
+      setGlobalReportData(null);
+    }
+  }, [userId, savedReports.length]);
 
   // Update date range when period changes
   useEffect(() => {
@@ -279,7 +312,7 @@ export default function ReportsPage() {
 
       const csvContent = [
         headers.join(","),
-        ...rows.map((row) => row.join(",")),
+        ...rows.map((row: any[]) => row.join(",")),
       ].join("\n");
 
       // Create a blob and download it
@@ -651,6 +684,102 @@ export default function ReportsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Global Summary Section (shown if there are saved reports) */}
+        {savedReports.length > 0 && globalReportData && (
+          <div className="grid gap-6 animate-in fade-in slide-in-from-bottom-4">
+             <div className="grid gap-4 md:grid-cols-3">
+              <Card className="hover:shadow-lg transition-all border-l-4 border-l-blue-500 bg-gradient-to-br from-white to-blue-50/50 dark:from-background dark:to-background overflow-hidden relative">
+                <div className="absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-blue-500/10 blur-2xl" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Total Worked</CardTitle>
+                  <div className="h-8 w-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                    <Clock className="h-4 w-4" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-foreground">
+                    {formatDuration(globalReportData.summary.totalNetWork)}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-all border-l-4 border-l-orange-500 bg-gradient-to-br from-white to-orange-50/50 dark:from-background dark:to-background overflow-hidden relative">
+                <div className="absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-orange-500/10 blur-2xl" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Total Breaks</CardTitle>
+                  <div className="h-8 w-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400">
+                    <Coffee className="h-4 w-4" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-foreground">
+                    {formatDuration(globalReportData.summary.totalBreaks)}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-all border-l-4 border-l-purple-500 bg-gradient-to-br from-white to-purple-50/50 dark:from-background dark:to-background overflow-hidden relative">
+                <div className="absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-purple-500/10 blur-2xl" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Total Combined</CardTitle>
+                  <div className="h-8 w-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                    <Activity className="h-4 w-4" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-foreground">
+                    {formatDuration(globalReportData.summary.totalDuration)}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="shadow-sm overflow-hidden border-t-4 border-t-orange-500">
+              <CardHeader className="pb-2 bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-base">Aggregated Activity</CardTitle>
+                    <CardDescription>Consolidated data from all generated reports</CardDescription>
+                  </div>
+                  <div className="h-8 w-8 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
+                    <BarChart className="h-4 w-4" />
+                  </div>
+                </div>
+              </CardHeader>
+              <div className="bg-muted/10 border-b p-2">
+                <Tabs defaultValue="table" className="w-full">
+                  <div className="flex items-center justify-between px-2">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xs font-semibold tracking-tight mr-2 uppercase text-muted-foreground">
+                        View Mode:
+                      </h3>
+                      <TabsList className="h-8">
+                        <TabsTrigger value="table" className="text-xs px-3">
+                          <TableIcon className="mr-1.5 h-3.5 w-3.5" />
+                          Table
+                        </TabsTrigger>
+                        <TabsTrigger value="chart" className="text-xs px-3">
+                          <PieChart className="mr-1.5 h-3.5 w-3.5" />
+                          Chart
+                        </TabsTrigger>
+                      </TabsList>
+                    </div>
+                  </div>
+
+                  <div className="p-4">
+                    <TabsContent value="table" className="m-0">
+                      <ReportTable data={globalReportData.entries} />
+                    </TabsContent>
+                    <TabsContent value="chart" className="m-0 h-[350px]">
+                      <ReportChart data={globalReportData.entries} />
+                    </TabsContent>
+                  </div>
+                </Tabs>
+              </div>
+            </Card>
+          </div>
+        )}
 
         {/* Results Section */}
         {reportData && (
