@@ -89,6 +89,14 @@ Cada link de compartilhamento é protegido por um **UUID único** e pode ser con
   <img src="https://img.shields.io/badge/Vercel-000?style=for-the-badge&logo=vercel&logoColor=white" />
 </div>
 
+## 📅 Histórico de Versões
+
+Acompanhe a evolução do **Syncable** em nosso documento oficial de lançamentos.
+
+👉 **[Ver Histórico Completo em RELEASES.md](./RELEASES.md)**
+
+---
+
 ## 👨‍💻 Desenvolvedor
 
 | Foto                                                                                                                             | Nome                                                 | Cargo                                      |
