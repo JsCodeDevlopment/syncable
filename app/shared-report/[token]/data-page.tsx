@@ -140,7 +140,14 @@ export function DataPage({ token }: DataPageProps) {
         <div className="w-full space-y-8">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div className="space-y-1">
-              <h1 className="text-3xl font-bold tracking-tight">Time Tracking Report</h1>
+              <h1 className="text-3xl font-bold tracking-tight">
+                {report.report_name ? `Report: ${report.report_name}` : "Time Tracking Report"}
+              </h1>
+              {report.report_cpf_cnpj && (
+                <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">
+                  Document: {report.report_cpf_cnpj}
+                </p>
+              )}
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Calendar className="h-4 w-4" />
                 <span className="text-sm font-medium">

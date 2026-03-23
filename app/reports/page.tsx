@@ -102,6 +102,8 @@ export default function ReportsPage() {
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const [reportCreatedSuccess, setReportCreatedSuccess] = useState(false);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
+  const [reportName, setReportName] = useState("");
+  const [reportCpfCnpj, setReportCpfCnpj] = useState("");
   const [copiedLink, setCopiedLink] = useState(false);
   const [userData, setUserData] = useState<any>(null);
   const reportResultRef = useRef<HTMLDivElement>(null);
@@ -319,14 +321,21 @@ export default function ReportsPage() {
 
       const titleLines = [
         "=========================================",
-        `      RELATÓRIO SYNCABLE - ${userName.toUpperCase()}      `,
+        `      RELATÓRIO SYNCABLE - ${reportName || userName.toUpperCase()}      `,
         "=========================================",
         `Período: ${startDate ? formatDateForDisplay(startDate) : "N/A"} até ${endDate ? formatDateForDisplay(endDate) : "N/A"}`,
         `Gerado em: ${new Date().toLocaleString()}`,
+      ];
+
+      if (reportCpfCnpj) {
+        titleLines.push(`Documento (CPF/CNPJ): ${reportCpfCnpj}`);
+      }
+
+      titleLines.push(
         "",
         "DETALHAMENTO DIÁRIO",
         "----------------------------------------",
-      ];
+      );
 
       const headers = [
         "Data",
@@ -426,6 +435,8 @@ export default function ReportsPage() {
         endDate,
         Number.parseInt(shareDuration),
         showInsightsInShare,
+        reportName,
+        reportCpfCnpj
       );
 
       if (result.success) {
@@ -640,6 +651,27 @@ export default function ReportsPage() {
                     </Select>
                   </div>
 
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="reportName">Name (Optional)</Label>
+                      <Input
+                        id="reportName"
+                        placeholder="Ex: John Doe"
+                        value={reportName}
+                        onChange={(e) => setReportName(e.target.value)}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="reportCpfCnpj">CPF/CNPJ (Optional)</Label>
+                      <Input
+                        id="reportCpfCnpj"
+                        placeholder="000.000.000-00"
+                        value={reportCpfCnpj}
+                        onChange={(e) => setReportCpfCnpj(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
                   <Button
                     onClick={handleGenerateReport}
                     disabled={isGenerating}
@@ -792,9 +824,14 @@ export default function ReportsPage() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 bg-white/50 dark:bg-background/50 p-6 rounded-2xl border backdrop-blur-sm shadow-sm">
               <div>
                 <h2 className="text-3xl font-extrabold tracking-tight">
-                  Report Results
+                  {reportName ? `Report: ${reportName}` : "Report Results"}
                 </h2>
                 <p className="text-muted-foreground text-lg">
+                  {reportCpfCnpj ? (
+                    <span className="block mb-1 font-medium text-xs uppercase tracking-widest text-primary/70">
+                      Document: {reportCpfCnpj}
+                    </span>
+                  ) : null}
                   Detailed productivity analysis for the selected period.
                 </p>
               </div>
@@ -1278,8 +1315,13 @@ export default function ReportsPage() {
         <div className="hidden print:block p-8 font-sans bg-white text-black min-h-screen">
           <div className="border-b-2 border-black pb-4 mb-8">
             <h1 className="text-3xl font-bold uppercase tracking-tighter">
-              Relatório de Horas
+              {reportName ? `Relatório: ${reportName}` : "Relatório de Horas"}
             </h1>
+            {reportCpfCnpj && (
+              <p className="text-sm font-medium text-gray-600 mt-1">
+                CPF/CNPJ: {reportCpfCnpj}
+              </p>
+            )}
             <p className="text-xl">Syncable Time Tracking System</p>
           </div>
 

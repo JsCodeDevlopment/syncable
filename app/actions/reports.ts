@@ -32,6 +32,8 @@ export type SharedReport = {
   end_date: Date;
   expires_at: Date | null;
   show_insights: boolean;
+  report_name?: string | null;
+  report_cpf_cnpj?: string | null;
   created_at: Date;
   updated_at: Date;
 };
@@ -146,7 +148,9 @@ export async function createSharedReport(
   startDate: Date,
   endDate: Date,
   expiresInDays: number,
-  showInsights: boolean = true
+  showInsights: boolean = true,
+  reportName: string = "",
+  reportCpfCnpj: string = ""
 ): Promise<{ success: boolean; data?: SharedReport; error?: string }> {
   try {
     console.log(
@@ -194,17 +198,21 @@ export async function createSharedReport(
           end_date TIMESTAMP WITH TIME ZONE NOT NULL,
           expires_at TIMESTAMP WITH TIME ZONE,
           show_insights BOOLEAN DEFAULT TRUE,
+          report_name TEXT,
+          report_cpf_cnpj TEXT,
           created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
           updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
         );
       `;
     }
 
-    // Attempt to add show_insights column if it doesn't exist (for existing tables)
+    // Attempt to add new columns if they don't exist (for existing tables)
     try {
         await sql`ALTER TABLE shared_reports ADD COLUMN IF NOT EXISTS show_insights BOOLEAN DEFAULT TRUE`;
+        await sql`ALTER TABLE shared_reports ADD COLUMN IF NOT EXISTS report_name TEXT`;
+        await sql`ALTER TABLE shared_reports ADD COLUMN IF NOT EXISTS report_cpf_cnpj TEXT`;
     } catch (e) {
-        console.log("Column show_insights might already exist");
+        console.log("Columns might already exist or table alteration failed:", e);
     }
 
     console.log("Schema check/update completed");
@@ -217,7 +225,9 @@ export async function createSharedReport(
         start_date, 
         end_date, 
         expires_at,
-        show_insights
+        show_insights,
+        report_name,
+        report_cpf_cnpj
       )
       VALUES (
         ${userId}, 
@@ -226,7 +236,9 @@ export async function createSharedReport(
         ${startDate}, 
         ${endDate}, 
         ${expiresAt},
-        ${showInsights}
+        ${showInsights},
+        ${reportName},
+        ${reportCpfCnpj}
       )
       RETURNING *
     `) as any[];
