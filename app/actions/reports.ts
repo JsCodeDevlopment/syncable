@@ -13,6 +13,7 @@ export type ReportData = {
     duration: number;
     breaks: number;
     netWork: number;
+    observations?: string | null;
   }[];
   summary: {
     totalDuration: number;
@@ -72,6 +73,7 @@ export async function generateReport(
         te.id, 
         te.start_time, 
         te.end_time,
+        te.observations,
         EXTRACT(EPOCH FROM (COALESCE(te.end_time, CURRENT_TIMESTAMP) - te.start_time)) * 1000 AS duration,
         COALESCE(
           (SELECT SUM(EXTRACT(EPOCH FROM (COALESCE(b.end_time, CURRENT_TIMESTAMP) - b.start_time)) * 1000)
@@ -106,6 +108,7 @@ export async function generateReport(
         duration,
         breaks,
         netWork,
+        observations: entry.observations,
       };
     });
 
@@ -478,6 +481,7 @@ export async function getGlobalReportAggregation(
         te.id, 
         te.start_time, 
         te.end_time,
+        te.observations,
         EXTRACT(EPOCH FROM (COALESCE(te.end_time, CURRENT_TIMESTAMP) - te.start_time)) * 1000 AS duration,
         COALESCE(
           (SELECT SUM(EXTRACT(EPOCH FROM (COALESCE(b.end_time, CURRENT_TIMESTAMP) - b.start_time)) * 1000)
@@ -514,6 +518,7 @@ export async function getGlobalReportAggregation(
         duration,
         breaks,
         netWork,
+        observations: entry.observations,
       };
     });
 

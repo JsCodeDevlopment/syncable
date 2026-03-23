@@ -3,6 +3,25 @@
 import { sql } from "@/lib/db"
 import { revalidatePath } from "next/cache"
 
+// Ensure observations column exists
+async function ensureObservationsColumn() {
+  try {
+    await sql`
+      DO $$ 
+      BEGIN 
+        IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'time_entries' AND COLUMN_NAME = 'observations') THEN
+          ALTER TABLE time_entries ADD COLUMN observations TEXT;
+        END IF;
+      END $$;
+    `
+  } catch (error) {
+    console.error("Error ensuring observations column:", error)
+  }
+}
+
+// Call ensureObservationsColumn once at startup or here
+ensureObservationsColumn()
+
 // Types
 export type TimeEntry = {
   id: number
@@ -10,6 +29,7 @@ export type TimeEntry = {
   start_time: Date
   end_time: Date | null
   status: "active" | "completed" | "deleted"
+  observations?: string | null
   created_at: Date
   updated_at: Date
 }
@@ -41,7 +61,7 @@ export async function startTimeEntry(userId: number) {
 }
 
 // End a time entry
-export async function endTimeEntry(timeEntryId: number) {
+export async function endTimeEntry(timeEntryId: number, observations?: string) {
   try {
     // First, end any active breaks for this time entry
     await sql`
@@ -53,9 +73,13 @@ export async function endTimeEntry(timeEntryId: number) {
     // Then end the time entry
     const result = (await sql`
       UPDATE time_entries
-      SET end_time = NOW(), status = 'completed', updated_at = NOW()
+      SET 
+        end_time = NOW(), 
+        status = 'completed', 
+        observations = ${observations || null},
+        updated_at = NOW()
       WHERE id = ${timeEntryId} AND end_time IS NULL
-      RETURNING id, user_id, start_time, end_time, status, created_at, updated_at
+      RETURNING id, user_id, start_time, end_time, status, observations, created_at, updated_at
     `) as TimeEntry[]
 
     revalidatePath("/dashboard")
@@ -105,7 +129,7 @@ export async function endBreak(breakId: number) {
 export async function getActiveTimeEntry(userId: number) {
   try {
     const timeEntries = (await sql`
-      SELECT id, user_id, start_time, end_time, status, created_at, updated_at
+      SELECT id, user_id, start_time, end_time, status, observations, created_at, updated_at
       FROM time_entries
       WHERE user_id = ${userId} AND status = 'active' AND end_time IS NULL
       ORDER BY start_time DESC
@@ -176,6 +200,7 @@ export async function getRecentTimeEntries(userId: number, limit = 5) {
         te.start_time, 
         te.end_time, 
         te.status, 
+        te.observations,
         te.created_at, 
         te.updated_at,
         COALESCE(
@@ -224,6 +249,7 @@ export async function getTimeEntriesInRange(userId: number, startDate: Date, end
         te.start_time, 
         te.end_time, 
         te.status, 
+        te.observations,
         te.created_at, 
         te.updated_at,
         COALESCE(

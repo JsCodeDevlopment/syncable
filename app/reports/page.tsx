@@ -344,16 +344,33 @@ export default function ReportsPage() {
         "Duração",
         "Intervalo",
         "Líquido",
+        "Observações",
       ];
 
-      const dataRows = reportData.entries.map((entry: any) => [
-        entry.date,
-        entry.startTime,
-        entry.endTime || "Em execução",
-        formatDuration(entry.duration),
-        formatDuration(entry.breaks),
-        formatDuration(entry.netWork),
-      ]);
+      const dataRows = reportData.entries.map((entry: any) => {
+        let obsText = "";
+        if (entry.observations) {
+          try {
+            const parsed = JSON.parse(entry.observations);
+            obsText = parsed
+              .map((n: any) => n.children ? n.children.map((c: any) => c.text).join("") : "")
+              .join(" ")
+              .replace(/;/g, ",")
+              .replace(/\n/g, " ");
+          } catch (e) {
+            obsText = entry.observations.replace(/;/g, ",").replace(/\n/g, " ");
+          }
+        }
+        return [
+          entry.date,
+          entry.startTime,
+          entry.endTime || "Em execução",
+          formatDuration(entry.duration),
+          formatDuration(entry.breaks),
+          formatDuration(entry.netWork),
+          obsText,
+        ];
+      });
 
       const summaryLines = [
         "",

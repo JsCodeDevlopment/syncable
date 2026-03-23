@@ -18,8 +18,10 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "@/components/ui/use-toast"
 import { createBrazilianDate, formatDateForInput, getNowInBrazil } from "@/lib/timezone"
-import { Calendar as CalendarIcon, Clock, Coffee, PlusCircle, Trash2 } from "lucide-react"
+import { Calendar as CalendarIcon, Clock, Coffee, PlusCircle, Trash2, FileText } from "lucide-react"
 import { useState } from "react"
+import { RichTextEditor } from "@/components/rich-text-editor"
+import { Descendant } from "slate"
 
 interface ManualTimeEntryProps {
   userId: number
@@ -37,6 +39,12 @@ export function ManualTimeEntry({ userId, onSuccess }: ManualTimeEntryProps) {
   const [endTime, setEndTime] = useState("17:00")
   const [breaks, setBreaks] = useState<{ id: number; startTime: string; endTime: string }[]>([])
   const [nextBreakId, setNextBreakId] = useState(1)
+  const [observations, setObservations] = useState<Descendant[]>([
+    {
+      type: 'paragraph',
+      children: [{ text: '' }],
+    }
+  ])
 
   const addBreak = () => {
     setBreaks([...breaks, { id: nextBreakId, startTime: "12:00", endTime: "13:00" }])
@@ -112,7 +120,13 @@ export function ManualTimeEntry({ userId, onSuccess }: ManualTimeEntryProps) {
       })
 
       // Submit the entry
-      const result = await createManualTimeEntry(userId, startDateTime, endDateTime, formattedBreaks)
+      const result = await createManualTimeEntry(
+        userId, 
+        startDateTime, 
+        endDateTime, 
+        formattedBreaks,
+        JSON.stringify(observations)
+      )
 
       if (result.success) {
         toast({
@@ -268,6 +282,27 @@ export function ManualTimeEntry({ userId, onSuccess }: ManualTimeEntryProps) {
                 ))}
               </div>
             )}
+          </div>
+
+          <Separator />
+
+          {/* Observations Section */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-blue-600 dark:text-blue-400">
+              <FileText className="h-4 w-4" />
+              <span>Observations (Optional)</span>
+            </div>
+            
+            <div className="border rounded-lg overflow-hidden">
+              <RichTextEditor
+                value={observations}
+                onChange={setObservations}
+                mode="controlled"
+                minHeight="150px"
+                maxHeight="300px"
+                placeholder="What did you work on today?"
+              />
+            </div>
           </div>
 
           <DialogFooter className="pt-4">

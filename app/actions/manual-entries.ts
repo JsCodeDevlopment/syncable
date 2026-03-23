@@ -10,6 +10,7 @@ export async function createManualTimeEntry(
   startTime: Date,
   endTime: Date | null,
   breakDetails: { startTime: Date; endTime: Date | null }[],
+  observations?: string,
 ) {
   try {
     // Start a transaction
@@ -17,14 +18,15 @@ export async function createManualTimeEntry(
 
     // Insert the time entry
     const timeEntryResult = await sql`
-      INSERT INTO time_entries (user_id, start_time, end_time, status)
+      INSERT INTO time_entries (user_id, start_time, end_time, status, observations)
       VALUES (
         ${userId}, 
         ${startTime}, 
         ${endTime}, 
-        ${endTime ? "completed" : "active"}
+        ${endTime ? "completed" : "active"},
+        ${observations || null}
       )
-      RETURNING id, user_id, start_time, end_time, status, created_at, updated_at
+      RETURNING id, user_id, start_time, end_time, status, observations, created_at, updated_at
     `
 
     const timeEntry = timeEntryResult[0] as TimeEntry
@@ -57,7 +59,7 @@ export async function createManualTimeEntry(
 }
 
 // Update an existing time entry
-export async function updateTimeEntry(timeEntryId: number, startTime: Date, endTime: Date | null, userId: number) {
+export async function updateTimeEntry(timeEntryId: number, startTime: Date, endTime: Date | null, userId: number, observations?: string) {
   try {
     // Verify the time entry belongs to the user
     const verifyResult = await sql`
@@ -75,9 +77,10 @@ export async function updateTimeEntry(timeEntryId: number, startTime: Date, endT
         start_time = ${startTime}, 
         end_time = ${endTime},
         status = ${endTime ? "completed" : "active"},
+        observations = ${observations !== undefined ? (observations || null) : sql`observations`},
         updated_at = NOW()
       WHERE id = ${timeEntryId}
-      RETURNING id, user_id, start_time, end_time, status, created_at, updated_at
+      RETURNING id, user_id, start_time, end_time, status, observations, created_at, updated_at
     `
 
     revalidatePath("/dashboard")

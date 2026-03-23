@@ -11,9 +11,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { formatDuration, formatTimer } from "@/lib/format-duration";
-import { Coffee, LogOut, Play } from "lucide-react";
+import { Coffee, LogOut, Play, FileText } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ManualTimeEntry } from "./manual-time-entry";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from "@/components/ui/dialog";
+import { RichTextEditor } from "@/components/rich-text-editor";
+import { Descendant } from "slate";
 
 export function TimeTracker({ userId }: { userId: number }) {
   const [status, setStatus] = useState<"idle" | "working" | "break">("idle");
@@ -28,6 +38,13 @@ export function TimeTracker({ userId }: { userId: number }) {
   const [totalBreakTime, setTotalBreakTime] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [isFinishDialogOpen, setIsFinishDialogOpen] = useState(false);
+  const [observations, setObservations] = useState<Descendant[]>([
+    {
+      type: 'paragraph',
+      children: [{ text: '' }],
+    }
+  ]);
 
   // Create a custom event to notify other components when time entries change
   const triggerRefresh = () => {
@@ -207,6 +224,10 @@ export function TimeTracker({ userId }: { userId: number }) {
   };
 
   const handleEndDay = async () => {
+    setIsFinishDialogOpen(true);
+  };
+
+  const confirmEndDay = async () => {
     if (!activeTimeEntryId) return;
 
     setIsLoading(true);
@@ -217,7 +238,7 @@ export function TimeTracker({ userId }: { userId: number }) {
         await endBreak(activeBreakId);
       }
 
-      const result = await endTimeEntry(activeTimeEntryId);
+      const result = await endTimeEntry(activeTimeEntryId, JSON.stringify(observations));
 
       if (result.success) {
         setStatus("idle");
@@ -228,6 +249,8 @@ export function TimeTracker({ userId }: { userId: number }) {
         setElapsedTime(0);
         setBreakTime(0);
         setTotalBreakTime(0);
+        setObservations([{ type: 'paragraph', children: [{ text: '' }] }]);
+        setIsFinishDialogOpen(false);
 
         // Trigger refresh after ending day
         triggerRefresh();
@@ -398,6 +421,45 @@ export function TimeTracker({ userId }: { userId: number }) {
           )}
         </div>
       )}
+
+      {/* Finish Day Dialog */}
+      <Dialog open={isFinishDialogOpen} onOpenChange={setIsFinishDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Finalize Your Jornada</DialogTitle>
+            <DialogDescription>
+              Great job today! Would you like to add any observations about what you've done?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-blue-600 dark:text-blue-400">
+              <FileText className="h-4 w-4" />
+              <span>Observations (Optional)</span>
+            </div>
+            
+            <div className="border rounded-lg overflow-hidden min-h-[200px]">
+              <RichTextEditor
+                value={observations}
+                onChange={setObservations}
+                mode="controlled"
+                minHeight="200px"
+                maxHeight="400px"
+                placeholder="Summary of today's work..."
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsFinishDialogOpen(false)} disabled={isLoading}>
+              Cancel
+            </Button>
+            <Button onClick={confirmEndDay} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700 min-w-[120px]">
+              {isLoading ? "Saving..." : "End My Day"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

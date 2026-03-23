@@ -37,11 +37,14 @@ import {
   Coffee,
   FileText,
   LayoutDashboard,
+  Search,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { RichTextViewer } from "@/components/rich-text-editor";
+import { cn } from "@/lib/utils";
 
 interface DataPageProps {
   token: string;
@@ -52,6 +55,14 @@ export function DataPage({ token }: DataPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [reportData, setReportData] = useState<any>(null);
   const [report, setReport] = useState<any>(null);
+  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
+
+  const toggleRow = (id: number) => {
+    setExpandedRows((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
 
   useEffect(() => {
     const fetchReport = async () => {
@@ -266,24 +277,78 @@ export function DataPage({ token }: DataPageProps) {
                               <TableHead className="font-bold">Gross Duration</TableHead>
                               <TableHead className="font-bold text-orange-600 dark:text-orange-400">Breaks</TableHead>
                               <TableHead className="font-bold text-blue-600 dark:text-blue-400">Net Work</TableHead>
+                              <TableHead className="w-[100px]"></TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {reportData.entries.map((entry: any) => (
-                              <TableRow key={entry.id} className="hover:bg-muted/30 transition-colors">
-                                <TableCell className="font-medium whitespace-nowrap">{entry.date}</TableCell>
-                                <TableCell className="whitespace-nowrap">
-                                  <div className="flex items-center gap-1.5 text-xs">
-                                    <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border font-mono">{entry.startTime}</span>
-                                    <span className="text-muted-foreground">→</span>
-                                    <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border font-mono">{entry.endTime || "In progress"}</span>
-                                  </div>
-                                </TableCell>
-                                <TableCell className="tabular-nums font-medium">{formatDuration(entry.duration)}</TableCell>
-                                <TableCell className="tabular-nums text-orange-600/80 dark:text-orange-400/80">{formatDuration(entry.breaks)}</TableCell>
-                                <TableCell className="tabular-nums font-bold text-blue-600 dark:text-blue-400">{formatDuration(entry.netWork)}</TableCell>
-                              </TableRow>
-                            ))}
+                            {reportData.entries.map((entry: any) => {
+                              let obsContent;
+                              try {
+                                obsContent = entry.observations ? JSON.parse(entry.observations) : null;
+                              } catch (e) {
+                                obsContent = entry.observations ? [{ type: 'paragraph', children: [{ text: entry.observations }] }] : null;
+                              }
+                              
+                              const isExpanded = expandedRows[entry.id];
+                              
+                              return (
+                                <>
+                                  <TableRow 
+                                    key={entry.id} 
+                                    className={cn(
+                                      "transition-colors",
+                                      isExpanded ? "bg-muted/20" : "hover:bg-muted/10",
+                                      obsContent && "cursor-pointer"
+                                    )}
+                                    onClick={() => obsContent && toggleRow(entry.id)}
+                                  >
+                                    <TableCell className="font-medium whitespace-nowrap">{entry.date}</TableCell>
+                                    <TableCell className="whitespace-nowrap">
+                                      <div className="flex items-center gap-1.5 text-xs">
+                                        <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border font-mono">{entry.startTime}</span>
+                                        <span className="text-muted-foreground">→</span>
+                                        <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border font-mono">{entry.endTime || "In progress"}</span>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="tabular-nums font-medium">{formatDuration(entry.duration)}</TableCell>
+                                    <TableCell className="tabular-nums text-orange-600/80 dark:text-orange-400/80">{formatDuration(entry.breaks)}</TableCell>
+                                    <TableCell className="tabular-nums font-bold text-blue-600 dark:text-blue-400">{formatDuration(entry.netWork)}</TableCell>
+                                    <TableCell>
+                                      {obsContent && (
+                                        <div className="flex justify-center">
+                                          <Button 
+                                            variant={isExpanded ? "secondary" : "default"}
+                                            size="sm" 
+                                            className={cn(
+                                              "h-8 text-xs px-3 shadow-md transition-all active:scale-95 font-medium",
+                                              !isExpanded && "bg-primary hover:bg-primary/90 hover:shadow-lg shadow-primary/20",
+                                              isExpanded && "bg-muted-foreground/10 text-muted-foreground hover:bg-muted-foreground/20"
+                                            )}
+                                          >
+                                            {isExpanded ? "Close" : "Description"}
+                                          </Button>
+                                        </div>
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                  {isExpanded && obsContent && (
+                                    <TableRow className="bg-muted/10 border-t-0">
+                                      <TableCell colSpan={6} className="p-0">
+                                        <div className="px-6 py-4 animate-in slide-in-from-top-2 duration-200">
+                                          <div className="rounded-xl border bg-background p-4 shadow-sm">
+                                            <div className="flex items-center gap-2 mb-3 border-b pb-2">
+                                              <FileText className="h-4 w-4 text-primary" />
+                                              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Observations</span>
+                                            </div>
+                                            <RichTextViewer content={obsContent} className="text-sm leading-relaxed" />
+                                          </div>
+                                        </div>
+                                      </TableCell>
+                                    </TableRow>
+                                  )}
+                                </>
+                              );
+                            })}
                           </TableBody>
                         </Table>
                       </div>
