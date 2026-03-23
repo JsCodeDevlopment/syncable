@@ -11,16 +11,21 @@ Plataforma moderna, intuitiva e responsiva desenvolvida com **Next.js 15**, foca
 - 🌓 **Interface Premium Elevada:** Design moderno com suporte nativo a temas Claro/Escuro via Tailwind CSS e micro-animações para feedback de usuário.
 - ⏱️ **Registro de Ponto Inteligente:** Dashboard interativo para registro instantâneo de entrada, saída e controle de intervalos com cronômetro reativo.
 - 📊 **Estatísticas de Alta Fidelidade:** Cards premium com métricas consolidadas (Total Trabalhado, Pausas, Combinado) e gráficos dinâmicos com **Recharts**.
-- 📄 **Novo Workflow de Relatórios:**
+- 📄 **Workflow de Relatórios Premium:**
   - **Geração via Modal:** Interface focada que substitui formulários estáticos por um fluxo intuitivo de geração.
   - **Atalhos Rápidos:** Botões para seleção instantânea de logs Diários, Semanais ou Mensais.
   - **Filtros Dinâmicos:** Escolha entre Visão Resumida, Detalhada ou Apenas Entradas.
-- 🔗 **Compartilhamento Avançado:**
-  - Geração de links públicos temporários com **data de expiração**.
-  - Controle de privacidade: Opção de exibir ou ocultar **Insights de Produtividade** no link compartilhado.
+  - **Personalização de Identidade:** Opção de incluir **Nome** e **CPF/CNPJ** nos relatórios (Web e CSV) para fins contábeis e profissionais.
+- 🖋️ **Observações em Rich Text:**
+  - Suporte total a **Slate.js** para anotações formatadas em cada registro de ponto.
+  - **Mini Relatórios Diários:** Visualização expansível em tabela para leitura detalhada de atividades sem poluir o layout principal.
+  - **Edição Retroativa:** Capacidade de atualizar observações mesmo após o fechamento da jornada.
+- 🔗 **Compartilhamento Blindado:**
+  - Geração de links públicos anônimos com **tokens criptografados** e expiração customizada.
+  - Controle de Auditoria: Opção de habilitar/desabilitar exibição de insights de performance para terceiros.
 - 📥 **Exportação de Dados Otimizada:**
-  - **Excel/CSV Master:** Arquivo formatado com separadores de sessão, banners personalizados e suporte total a acentos (UTF-8 BOM) para compatibilidade perfeita com Excel.
-  - **PDF Digital (Beta):** Visualização de impressão estruturada para salvamento em PDF.
+  - **Excel/CSV Master:** Arquivo formatado com separadores de sessão, banners personalizados, dados de identificação opcionais e suporte total a UTF-8 BOM.
+  - **PDF Digital (Beta):** Visualização de impressão estruturada e otimizada.
 
 ## 🏗️ Estrutura do Projeto
 
