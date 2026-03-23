@@ -7,11 +7,12 @@ import {
   getTotalBreakTime,
   startBreak,
   startTimeEntry,
+  updateTimeEntry,
 } from "@/app/actions/time-entries";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { formatDuration, formatTimer } from "@/lib/format-duration";
-import { Coffee, LogOut, Play, FileText } from "lucide-react";
+import { Coffee, LogOut, Play, FileText, Clock, AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ManualTimeEntry } from "./manual-time-entry";
 import { 
@@ -24,6 +25,10 @@ import {
 } from "@/components/ui/dialog";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { Descendant } from "slate";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { createBrazilianDate, formatDateForInput, formatTimeForInput, getNowInBrazil } from "@/lib/timezone";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export function TimeTracker({ userId }: { userId: number }) {
   const [status, setStatus] = useState<"idle" | "working" | "break">("idle");
@@ -45,6 +50,10 @@ export function TimeTracker({ userId }: { userId: number }) {
       children: [{ text: '' }],
     }
   ]);
+  const [isAdjustingStart, setIsAdjustingStart] = useState(false);
+  const [adjustedStartTime, setAdjustedStartTime] = useState("");
+  const [isDelayedExit, setIsDelayedExit] = useState(false);
+  const [adjustedEndTime, setAdjustedEndTime] = useState("");
 
   // Create a custom event to notify other components when time entries change
   const triggerRefresh = () => {
@@ -154,6 +163,46 @@ export function TimeTracker({ userId }: { userId: number }) {
     }
   };
 
+  const handleAdjustStartTime = async () => {
+    if (!activeTimeEntryId || !adjustedStartTime) return;
+
+    setIsLoading(true);
+    try {
+      const now = getNowInBrazil();
+      const dateStr = formatDateForInput(now);
+      const newStartDateTime = createBrazilianDate(dateStr, adjustedStartTime);
+
+      const result = await updateTimeEntry(activeTimeEntryId, {
+        start_time: newStartDateTime,
+      });
+
+      if (result.success && result.data) {
+        setStartTime(new Date(result.data.start_time));
+        setIsAdjustingStart(false);
+        triggerRefresh();
+        toast({
+          title: "Entry Adjusted",
+          description: "Your start time has been successfully adjusted.",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to adjust start time",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error adjusting start time:", error);
+      toast({
+        title: "Error",
+        description: "Failed to adjust start time. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleStartBreak = async () => {
     if (!activeTimeEntryId) return;
 
@@ -224,6 +273,9 @@ export function TimeTracker({ userId }: { userId: number }) {
   };
 
   const handleEndDay = async () => {
+    const now = getNowInBrazil();
+    setAdjustedEndTime(formatTimeForInput(now));
+    setIsDelayedExit(false);
     setIsFinishDialogOpen(true);
   };
 
@@ -238,7 +290,14 @@ export function TimeTracker({ userId }: { userId: number }) {
         await endBreak(activeBreakId);
       }
 
-      const result = await endTimeEntry(activeTimeEntryId, JSON.stringify(observations));
+      let finalEndTime: Date | undefined = undefined;
+      if (isDelayedExit && adjustedEndTime) {
+        const now = getNowInBrazil();
+        const dateStr = formatDateForInput(now);
+        finalEndTime = createBrazilianDate(dateStr, adjustedEndTime);
+      }
+
+      const result = await endTimeEntry(activeTimeEntryId, JSON.stringify(observations), finalEndTime);
 
       if (result.success) {
         setStatus("idle");
@@ -407,6 +466,20 @@ export function TimeTracker({ userId }: { userId: number }) {
               minute: "2-digit",
             })}
           </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-2 h-7 px-2 text-[10px] text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
+            onClick={() => {
+              if (startTime) {
+                setAdjustedStartTime(formatTimeForInput(startTime));
+                setIsAdjustingStart(true);
+              }
+            }}
+          >
+            <Clock className="mr-1 h-3 w-3" />
+            Entrada atrasada?
+          </Button>
           {status === "break" && (
             <span>
               {" "}
@@ -432,13 +505,48 @@ export function TimeTracker({ userId }: { userId: number }) {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-blue-600 dark:text-blue-400">
-              <FileText className="h-4 w-4" />
-              <span>Observations (Optional)</span>
+          <div className="space-y-6 py-4">
+            <div className="flex flex-col gap-4 p-4 border rounded-lg bg-orange-50/50 dark:bg-orange-950/20 border-orange-100 dark:border-orange-900/30">
+              <div className="flex items-center gap-2 text-sm font-semibold text-orange-600 dark:text-orange-400">
+                <Clock className="h-4 w-4" />
+                <span>Delayed Exit?</span>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="delayed-exit" 
+                  checked={isDelayedExit} 
+                  onCheckedChange={(checked) => setIsDelayedExit(checked === true)}
+                />
+                <Label htmlFor="delayed-exit" className="text-sm cursor-pointer font-normal">
+                  I forgot to end my jornada earlier
+                </Label>
+              </div>
+
+              {isDelayedExit && (
+                <div className="grid gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <Label htmlFor="end-time" className="text-xs">Actual End Time</Label>
+                  <Input
+                    id="end-time"
+                    type="time"
+                    value={adjustedEndTime}
+                    onChange={(e) => setAdjustedEndTime(e.target.value)}
+                    className="max-w-[150px]"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Your jornada will be recorded as ending at this time.
+                  </p>
+                </div>
+              )}
             </div>
-            
-            <div className="border rounded-lg overflow-hidden min-h-[200px]">
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-blue-600 dark:text-blue-400">
+                <FileText className="h-4 w-4" />
+                <span>Observations (Optional)</span>
+              </div>
+              
+              <div className="border rounded-lg overflow-hidden min-h-[200px]">
               <RichTextEditor
                 value={observations}
                 onChange={setObservations}
@@ -449,6 +557,7 @@ export function TimeTracker({ userId }: { userId: number }) {
               />
             </div>
           </div>
+        </div>
 
           <DialogFooter>
             <Button variant="ghost" onClick={() => setIsFinishDialogOpen(false)} disabled={isLoading}>
@@ -456,6 +565,47 @@ export function TimeTracker({ userId }: { userId: number }) {
             </Button>
             <Button onClick={confirmEndDay} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700 min-w-[120px]">
               {isLoading ? "Saving..." : "End My Day"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Adjust Start Time Dialog */}
+      <Dialog open={isAdjustingStart} onOpenChange={setIsAdjustingStart}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Adjust Start Time</DialogTitle>
+            <DialogDescription>
+              Forgot to start your jornada? Set the time you actually started working.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800">
+              <AlertCircle className="h-5 w-5 shrink-0" />
+              <p className="text-xs">
+                This will adjust your entry start time for today's session.
+              </p>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="adj-start-time">Actual Start Time</Label>
+              <Input
+                id="adj-start-time"
+                type="time"
+                value={adjustedStartTime}
+                onChange={(e) => setAdjustedStartTime(e.target.value)}
+                className="max-w-[150px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsAdjustingStart(false)} disabled={isLoading}>
+              Cancel
+            </Button>
+            <Button onClick={handleAdjustStartTime} disabled={isLoading || !adjustedStartTime} className="bg-blue-600 hover:bg-blue-700 min-w-[120px]">
+              {isLoading ? "Updating..." : "Update Start Time"}
             </Button>
           </DialogFooter>
         </DialogContent>

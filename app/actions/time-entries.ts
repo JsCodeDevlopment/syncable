@@ -61,12 +61,14 @@ export async function startTimeEntry(userId: number) {
 }
 
 // End a time entry
-export async function endTimeEntry(timeEntryId: number, observations?: string) {
+export async function endTimeEntry(timeEntryId: number, observations?: string, endTime?: Date) {
   try {
+    const finalEndTime = endTime || new Date();
+
     // First, end any active breaks for this time entry
     await sql`
       UPDATE breaks
-      SET end_time = NOW(), updated_at = NOW()
+      SET end_time = ${finalEndTime}, updated_at = NOW()
       WHERE time_entry_id = ${timeEntryId} AND end_time IS NULL
     `
 
@@ -74,7 +76,7 @@ export async function endTimeEntry(timeEntryId: number, observations?: string) {
     const result = (await sql`
       UPDATE time_entries
       SET 
-        end_time = NOW(), 
+        end_time = ${finalEndTime}, 
         status = 'completed', 
         observations = ${observations || null},
         updated_at = NOW()
@@ -87,6 +89,41 @@ export async function endTimeEntry(timeEntryId: number, observations?: string) {
   } catch (error) {
     console.error("Error ending time entry:", error)
     return { success: false, error: "Failed to end time entry" }
+  }
+}
+
+// Update a time entry (e.g. for delayed entry/exit)
+export async function updateTimeEntry(timeEntryId: number, updates: { start_time?: Date; end_time?: Date; observations?: string }) {
+  try {
+    const timeEntries = (await sql`
+      SELECT id, start_time, end_time, observations FROM time_entries WHERE id = ${timeEntryId}
+    `) as TimeEntry[]
+
+    if (timeEntries.length === 0) {
+      return { success: false, error: "Time entry not found" }
+    }
+
+    const currentEntry = timeEntries[0]
+    const startTime = updates.start_time || currentEntry.start_time
+    const endTime = updates.end_time !== undefined ? updates.end_time : currentEntry.end_time
+    const observations = updates.observations !== undefined ? updates.observations : currentEntry.observations
+
+    const result = (await sql`
+      UPDATE time_entries
+      SET 
+        start_time = ${startTime},
+        end_time = ${endTime},
+        observations = ${observations},
+        updated_at = NOW()
+      WHERE id = ${timeEntryId}
+      RETURNING id, user_id, start_time, end_time, status, observations, created_at, updated_at
+    `) as TimeEntry[]
+
+    revalidatePath("/dashboard")
+    return { success: true, data: result[0] }
+  } catch (error) {
+    console.error("Error updating time entry:", error)
+    return { success: false, error: "Failed to update time entry" }
   }
 }
 
