@@ -43,6 +43,7 @@ type Entry = {
   status: string;
   total_break_time: number;
   breaks?: Break[];
+  observations?: string | null;
 };
 
 export function RecentEntries({ userId }: { userId: number }) {
@@ -247,6 +248,7 @@ export function RecentEntries({ userId }: { userId: number }) {
                       timeEntryId={entry.id}
                       initialStartTime={startTime}
                       initialEndTime={endTime}
+                      initialObservations={entry.observations}
                       breaks={formattedBreaks}
                       onSuccess={refreshEntries}
                     />
