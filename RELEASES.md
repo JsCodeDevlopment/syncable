@@ -10,6 +10,16 @@ Este documento registra todas as atualizações, melhorias e correções aplicad
 
 ---
 
+## [v1.3.0] - 2026-03-23
+
+### ✨ Novidades e Recursos
+- 🕒 **Ajuste de Ponto Retroativo (Entrada/Saída Atrasada):**
+  - Botão **"Entrada atrasada?"** para ajustar o início da jornada caso o usuário esqueça de bater o ponto.
+  - Opção de **"Saída atrasada?"** no modal de finalização do dia, permitindo informar o horário real de encerramento.
+- ⚡ **Sincronização reativa:** O cronômetro e as métricas do dashboard agora refletem instantaneamente os ajustes de tempo realizados.
+
+---
+
 ## [v1.2.0] - 2026-03-23
 
 ### ✨ Novidades e Melhorias

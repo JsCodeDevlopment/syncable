@@ -10,6 +10,9 @@ Plataforma moderna, intuitiva e responsiva desenvolvida com **Next.js 15**, foca
 
 - 🌓 **Interface Premium Elevada:** Design moderno com suporte nativo a temas Claro/Escuro via Tailwind CSS e micro-animações para feedback de usuário.
 - ⏱️ **Registro de Ponto Inteligente:** Dashboard interativo para registro instantâneo de entrada, saída e controle de intervalos com cronômetro reativo.
+- 🕒 **Ajuste de Jornada Retroativo:**
+  - **Entrada Atrasada:** Permite ao usuário ajustar o horário de início caso tenha esquecido de bater o ponto ao chegar.
+  - **Saída Atrasada:** Opção de informar o horário real de encerramento no momento da finalização da jornada.
 - 📊 **Estatísticas de Alta Fidelidade:** Cards premium com métricas consolidadas (Total Trabalhado, Pausas, Combinado) e gráficos dinâmicos com **Recharts**.
 - 📄 **Workflow de Relatórios Premium:**
   - **Geração via Modal:** Interface focada que substitui formulários estáticos por um fluxo intuitivo de geração.
