@@ -1,83 +1,51 @@
 # Syncable - Gestão de Ponto & Payroll Dashboard
 
-Plataforma moderna, intuitiva e responsiva desenvolvida com **Next.js 15**, focada na gestão completa de ponto eletrônico, controle de jornadas, pausas e geração de relatórios detalhados para profissionais e empresas.
+Plataforma moderna, intuitiva e responsiva desenvolvida para profissionais e empresas que buscam simplicidade e precisão no controle de jornada. O **Syncable** elimina a burocracia do registro de ponto, oferecendo uma experiência focada no que realmente importa: seu tempo.
 
 <h1 align="center">
   <img alt="Banner do Syncable" title="#Banner" style="object-fit: cover; width: 100%; max-height: 520px" src="public/preview.webp" />
 </h1>
 
-## 🚀 Funcionalidades e Módulos Atualizados
+---
 
-- 🌓 **Interface Premium Elevada:** Design moderno com suporte nativo a temas Claro/Escuro via Tailwind CSS e micro-animações para feedback de usuário.
-- ⏱️ **Registro de Ponto Inteligente:** Dashboard interativo para registro instantâneo de entrada, saída e controle de intervalos com cronômetro reativo.
-- 🕒 **Ajuste de Jornada Retroativo:**
-  - **Entrada Atrasada:** Permite ao usuário ajustar o horário de início caso tenha esquecido de bater o ponto ao chegar.
-  - **Saída Atrasada:** Opção de informar o horário real de encerramento no momento da finalização da jornada.
-- 📊 **Estatísticas de Alta Fidelidade:** Cards premium com métricas consolidadas (Total Trabalhado, Pausas, Combinado) e gráficos dinâmicos com **Recharts**.
-- 📄 **Workflow de Relatórios Premium:**
-  - **Geração via Modal:** Interface focada que substitui formulários estáticos por um fluxo intuitivo de geração.
-  - **Atalhos Rápidos:** Botões para seleção instantânea de logs Diários, Semanais ou Mensais.
-  - **Filtros Dinâmicos:** Escolha entre Visão Resumida, Detalhada ou Apenas Entradas.
-  - **Personalização de Identidade:** Opção de incluir **Nome** e **CPF/CNPJ** nos relatórios (Web e CSV) para fins contábeis e profissionais.
-- 🖋️ **Observações em Rich Text:**
-  - Suporte total a **Slate.js** para anotações formatadas em cada registro de ponto.
-  - **Mini Relatórios Diários:** Visualização expansível em tabela para leitura detalhada de atividades sem poluir o layout principal.
-  - **Edição Retroativa:** Capacidade de atualizar observações mesmo após o fechamento da jornada.
-- 🔗 **Compartilhamento Blindado:**
-  - Geração de links públicos anônimos com **tokens criptografados** e expiração customizada.
-  - Controle de Auditoria: Opção de habilitar/desabilitar exibição de insights de performance para terceiros.
-- 📥 **Exportação de Dados Otimizada:**
-  - **Excel/CSV Master:** Arquivo formatado com separadores de sessão, banners personalizados, dados de identificação opcionais e suporte total a UTF-8 BOM.
-  - **PDF Digital (Beta):** Visualização de impressão estruturada e otimizada.
+## 🚀 Funcionalidades que facilitam sua Jornada
 
-## 🏗️ Estrutura do Projeto
+O Syncable foi desenhado para ser seu aliado no dia a dia. Confira como a plataforma simplifica sua gestão:
 
-```txt
-app/
-├── (auth)/                         # Fluxos de autenticação (Login e Registro)
-├── dashboard/                      # Métricas premium e widget de tracker
-├── reports/                        # Módulo de geração e exportação (Novo Modal Workflow)
-├── shared-report/                  # Visualização pública anônima dinâmica
-├── actions/                        # Core de negócios (Server Actions)
-│   ├── time-entries.ts             # Lógica de punch-in/out e intervalos
-│   ├── reports.ts                  # Engine de processamento e segurança de links
-│   └── dashboard-summary.ts        # Agregador de métricas premium
-├── components/                     # Componentes de interface (UI & UX)
-│   ├── time-tracker.tsx            # Widget interativo com cronômetro
-│   ├── report-insights.tsx         # Cards de produtividade e benchmarks
-│   └── ui/                         # Base atômica Shadcn UI + Radix
-```
+### 1. ⏱️ Controle de Tempo Inteligente
 
-## 🧠 Arquitetura e Decisões de Design
+- **Registro em um Clique:** Bata o ponto de entrada, pausa ou saída instantaneamente.
+- **Cronômetro em Tempo Real:** Acompanhe exatamente quanto tempo você já trabalhou no dia.
+- **🕒 Entrada/Saída Atrasada:** Esqueceu de bater o ponto? Sem problemas. Ajuste seu horário de início ou fim retroativamente com facilidade.
+- **Pausas Flexíveis:** Gestão completa de intervalos para garantir que seu descanso seja computado corretamente.
 
-### Sincronização e Performance
+### 2. 📊 Insights e Métricas Claras
 
-O **Syncable** utiliza **Next.js Server Actions** para interagir diretamente com o banco de dados **Neon Serverless (PostgreSQL)**.
+- **Dashboard Visual:** Entenda sua produtividade através de cards intuitivos (Total Trabalhado, Tempo de Pausa, Horas Restantes).
+- **Gráficos Dinâmicos:** Visualize seu desempenho semanal e mensal de forma gráfica e elegante.
+- **Status Instantâneo:** Saiba se você está "Em Atividade", "Em Pausa" ou se sua jornada já foi concluída.
 
-- **Cold Starts Zero:** Resposta instantânea graças ao driver `@neondatabase/serverless`.
-- **Relatórios On-the-fly:** O processamento de dados para exportação ocorre em tempo de execução, garantindo que o CSV reflita o estado exato do banco.
+### 3. 📄 Relatórios Profissionais em Segundos
 
-### Fluxo de Geração de Relatórios (Shared Link)
+- **Geração Intuitiva:** Esqueça formulários complexos. Use nosso fluxo guiado para criar relatórios diários, semanais ou mensais.
+- **Personalização Completa:** Escolha incluir seu **Nome** e **CPF/CNPJ** para relatórios prontos para contabilidade.
+- **Exportação Master:** Gere arquivos **CSV/Excel** formatados perfeitamente para abrir em qualquer software de planilha.
 
-```mermaid
-flowchart LR
-    A[Usuário Gera Relatório] --> B[Modal de Exportação]
-    B --> C{Tipo de Ação?}
-    C -->|Download| D[Geração de CSV UTF-8 BOM]
-    C -->|Share| E[Server Action: createSharedReport]
-    E --> F[Inserção com Token e Expiração]
-    F --> G[Link Público Gerado]
-    G --> H[Visualização Exclusiva do Destinatário]
-```
+### 4. 🖋️ Anotações e Detalhamento
 
-### Segurança e Privacidade
+- **Observações com Formatação:** Adicione notas detalhadas sobre suas tarefas usando um editor de texto rico (negrito, listas, etc.).
+- **Edição Retroativa:** Precisa atualizar o que fez? Você pode editar suas observações mesmo após finalizar o dia.
+- **Visão Expandida:** Revise suas atividades passadas em uma tabela organizada que esconde detalhes para manter o foco, mas os revela em um clique.
 
-Cada link de compartilhamento é protegido por um **UUID único** e pode ser configurado com:
+### 5. 🔗 Compartilhamento Seguro
 
-1. **Duração Limitada:** Expiração automática em 1, 7, 30 ou 90 dias.
-2. **Toggle de Insights:** O usuário decide se o destinatário verá as análises de produtividade ou apenas a tabela de horas bruta.
+- **Links Blindados:** Compartilhe seus relatórios através de links protegidos por tokens únicos.
+- **Controle de Expiração:** Defina por quanto tempo o link ficará ativo (1 dia, 1 semana, etc.).
+- **Privacidade Total:** Escolha se quem recebe o link pode ver seus gráficos de performance ou apenas as horas brutas.
 
-## 🛠️ Tecnologias Utilizadas
+---
+
+## 🛠️ Tecnologias
 
 <div align="center">
   <img src="https://img.shields.io/badge/Next.js_15-000?style=for-the-badge&logo=next.js&logoColor=white" />
@@ -92,25 +60,30 @@ Cada link de compartilhamento é protegido por um **UUID único** e pode ser con
   <img src="https://img.shields.io/badge/Vercel-000?style=for-the-badge&logo=vercel&logoColor=white" />
 </div>
 
+---
+
 ## 📅 Histórico de Versões
 
-Acompanhe a evolução do **Syncable** em nosso documento oficial de lançamentos.
-
+Confira todas as melhorias e novos recursos em nosso log oficial:
 👉 **[Ver Histórico Completo em RELEASES.md](./RELEASES.md)**
 
 ---
 
-## 👨‍💻 Desenvolvedor
+## 👨‍💻 Time e Desenvolvimento
 
-| Foto                                                                                                                             | Nome                                                 | Cargo                                      |
-| :------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------- | :----------------------------------------- |
-| <img src="https://avatars.githubusercontent.com/u/100796752?s=400&u=ae99bd456c6b274cd934d85a374a44340140e222&v=4" width="100" /> | [Jonatas Silva](https://github.com/JsCodeDevlopment) | Senior Software Engineer / CTO & Tech Lead |
+<div align="center">
+  <img src="https://avatars.githubusercontent.com/u/100796752?s=400&u=ae99bd456c6b274cd934d85a374a44340140e222&v=4" width="100" style="border-radius: 50%" />
+  <br>
+  <strong>Jonatas Silva</strong>
+  <br>
+  Senior Software Engineer / CTO & Tech Lead at <a href="https://pokernetic.com/">PokerNetic</a>
+</div>
+
+---
 
 ## 📄 Licença
 
 Este projeto é privado e de uso restrito da **Syncable Corporation**.
-
----
 
 <div align="center">
   <sub>Built with ❤️ by <a href="https://github.com/JsCodeDevlopment">Jonatas Silva</a></sub>
