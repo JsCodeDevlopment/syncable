@@ -478,7 +478,7 @@ export function TimeTracker({ userId }: { userId: number }) {
             }}
           >
             <Clock className="mr-1 h-3 w-3" />
-            Entrada atrasada?
+            Delayed entry?
           </Button>
           {status === "break" && (
             <span>
