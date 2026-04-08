@@ -116,7 +116,6 @@ export function TimeTracker({ userId }: { userId: number }) {
           totalElapsed -= totalBreakTime;
         }
         setElapsedTime(totalElapsed);
-        setTotalBreakTime(totalBreakTime);
       }, 1000);
     } else if (status === "break" && breakStartTime) {
       interval = setInterval(() => {
@@ -382,7 +381,6 @@ export function TimeTracker({ userId }: { userId: number }) {
               ? "00:00"
               : formatTimer(
                   elapsedTime -
-                    totalBreakTime -
                     (status === "break" ? breakTime : 0),
                 )}
           </div>
