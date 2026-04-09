@@ -14,6 +14,8 @@ type UserSettings = {
   allow_sharing: boolean;
   share_duration_days: number;
   theme: Theme;
+  hourly_rate: number | null;
+  currency: string;
 };
 
 type DbUserSettings = UserSettings & {
@@ -24,6 +26,14 @@ type DbUserSettings = UserSettings & {
 
 export async function getUserSettings(userId: number) {
   try {
+    // Schema update: ensure hourly_rate and currency columns exist
+    try {
+      await sql`ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS hourly_rate DECIMAL(10, 2)`;
+      await sql`ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'BRL'`;
+    } catch (e) {
+      console.log("Columns might already exist or table alteration failed:", e);
+    }
+
     const result = (await sql`
       SELECT 
         working_hours,
@@ -33,7 +43,9 @@ export async function getUserSettings(userId: number) {
         enable_email_notifications,
         allow_sharing,
         share_duration_days,
-        theme
+        theme,
+        hourly_rate,
+        currency
       FROM user_settings
       WHERE user_id = ${userId}
     `) as DbUserSettings[];
@@ -48,6 +60,8 @@ export async function getUserSettings(userId: number) {
         allow_sharing: false,
         share_duration_days: 7,
         theme: "system",
+        hourly_rate: null,
+        currency: "BRL",
       };
 
       await sql`
@@ -60,7 +74,9 @@ export async function getUserSettings(userId: number) {
           enable_email_notifications,
           allow_sharing,
           share_duration_days,
-          theme
+          theme,
+          hourly_rate,
+          currency
         ) VALUES (
           ${userId},
           ${defaultSettings.working_hours},
@@ -70,7 +86,9 @@ export async function getUserSettings(userId: number) {
           ${defaultSettings.enable_email_notifications},
           ${defaultSettings.allow_sharing},
           ${defaultSettings.share_duration_days},
-          ${defaultSettings.theme}
+          ${defaultSettings.theme},
+          ${defaultSettings.hourly_rate},
+          ${defaultSettings.currency}
         )
       `;
 
@@ -89,6 +107,8 @@ export async function getUserSettings(userId: number) {
       allow_sharing: result[0].allow_sharing,
       share_duration_days: result[0].share_duration_days,
       theme: result[0].theme as Theme,
+      hourly_rate: result[0].hourly_rate !== null ? Number(result[0].hourly_rate) : null,
+      currency: result[0].currency || "BRL",
     };
 
     return {
@@ -109,6 +129,14 @@ export async function updateUserSettings(
   settings: Partial<UserSettings>
 ) {
   try {
+    // Schema update: ensure hourly_rate and currency columns exist
+    try {
+      await sql`ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS hourly_rate DECIMAL(10, 2)`;
+      await sql`ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'BRL'`;
+    } catch (e) {
+      console.log("Columns might already exist or table alteration failed:", e);
+    }
+
     const existingSettings = (await sql`
       SELECT 1 FROM user_settings WHERE user_id = ${userId}
     `) as { "?column?": number }[];
@@ -124,6 +152,8 @@ export async function updateUserSettings(
         allow_sharing: settings.allow_sharing ?? false,
         share_duration_days: settings.share_duration_days ?? 7,
         theme: settings.theme ?? "system",
+        hourly_rate: settings.hourly_rate ?? null,
+        currency: settings.currency ?? "BRL",
       };
 
       await sql`
@@ -136,7 +166,9 @@ export async function updateUserSettings(
           enable_email_notifications,
           allow_sharing,
           share_duration_days,
-          theme
+          theme,
+          hourly_rate,
+          currency
         ) VALUES (
           ${userId},
           ${defaultSettings.working_hours},
@@ -146,7 +178,9 @@ export async function updateUserSettings(
           ${defaultSettings.enable_email_notifications},
           ${defaultSettings.allow_sharing},
           ${defaultSettings.share_duration_days},
-          ${defaultSettings.theme}
+          ${defaultSettings.theme},
+          ${defaultSettings.hourly_rate},
+          ${defaultSettings.currency}
         )
       `;
     } else {
@@ -184,6 +218,12 @@ export async function updateUserSettings(
       }
       if (settings.theme !== undefined) {
         conditions.push(sql`theme = ${settings.theme}`);
+      }
+      if (settings.hourly_rate !== undefined) {
+        conditions.push(sql`hourly_rate = ${settings.hourly_rate}`);
+      }
+      if (settings.currency !== undefined) {
+        conditions.push(sql`currency = ${settings.currency}`);
       }
 
       if (conditions.length > 0) {

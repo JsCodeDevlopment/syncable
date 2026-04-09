@@ -33,6 +33,8 @@ export default function SettingsPage() {
     allow_sharing: boolean;
     share_duration_days: number;
     theme: "light" | "dark" | "system";
+    hourly_rate: number | null;
+    currency: string;
   } | null>(null);
 
   useEffect(() => {
@@ -129,6 +131,8 @@ export default function SettingsPage() {
               timezone: settings.timezone,
               auto_detect_breaks: settings.auto_detect_breaks,
               theme: settings.theme,
+              hourly_rate: settings.hourly_rate,
+              currency: settings.currency,
             }}
           />
         </TabsContent>

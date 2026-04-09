@@ -57,8 +57,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/use-toast";
 import { formatDateForDisplay } from "@/lib/db";
 import { formatDuration } from "@/lib/format-duration";
+import { formatCurrency } from "@/lib/format-currency";
 import {
   Activity,
+  Banknote,
   BarChart,
   CheckCircle2,
   Clock,
@@ -382,8 +384,16 @@ export default function ReportsPage() {
         `Total Acumulado (Bruto);${formatDuration(reportData.summary.totalDuration)}`,
         `Total de Dias Registrados;${reportData.summary.daysWorked}`,
         `Média Diária de Trabalho;${formatDuration(reportData.summary.averageDailyWork)}`,
-        "----------------------------------------",
       ];
+
+      if (reportData.summary.hourlyRate) {
+        summaryLines.push(
+          `Valor Hora;${formatCurrency(reportData.summary.hourlyRate, reportData.summary.currency)}`,
+          `TOTAL A RECEBER;${formatCurrency(reportData.summary.totalPayable, reportData.summary.currency)}`
+        );
+      }
+
+      summaryLines.push("----------------------------------------");
 
       // Use semicolon for better Excel compatibility in PT-BR locale
       const separator = ";";
@@ -780,6 +790,28 @@ export default function ReportsPage() {
                   </div>
                 </CardContent>
               </Card>
+
+              {globalReportData.summary.hourlyRate ? (
+                <Card className="hover:shadow-lg transition-all border-l-4 border-l-primary bg-gradient-to-br from-primary/[0.02] to-primary/[0.05] dark:from-background dark:to-background overflow-hidden relative group">
+                  <div className="absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-primary/10 blur-2xl group-hover:bg-primary/20 transition-colors" />
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-primary uppercase tracking-wider">
+                      Total Payable
+                    </CardTitle>
+                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                      <Banknote className="h-4 w-4" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-extrabold text-primary">
+                      {formatCurrency(globalReportData.summary.totalPayable, globalReportData.summary.currency)}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Rate: {formatCurrency(globalReportData.summary.hourlyRate, globalReportData.summary.currency)}/h
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : null}
             </div>
 
             <Card className="shadow-sm overflow-hidden border-t-4 border-t-orange-500">
@@ -1086,6 +1118,86 @@ export default function ReportsPage() {
                   </DialogContent>
                 </Dialog>
               </div>
+            </div>
+            
+            <div className="grid gap-4 md:grid-cols-4">
+              <Card className="relative overflow-hidden transition-all hover:shadow-md border-l-4 border-l-blue-500">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Total Worked
+                  </CardTitle>
+                  <Clock className="h-4 w-4 text-blue-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {formatDuration(reportData.summary.totalNetWork)}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="relative overflow-hidden transition-all hover:shadow-md border-l-4 border-l-orange-500">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Total Breaks
+                  </CardTitle>
+                  <Coffee className="h-4 w-4 text-orange-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {formatDuration(reportData.summary.totalBreaks)}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="relative overflow-hidden transition-all hover:shadow-md border-l-4 border-l-purple-500">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Combined Total
+                  </CardTitle>
+                  <Activity className="h-4 w-4 text-purple-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {formatDuration(reportData.summary.totalDuration)}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {reportData.summary.hourlyRate ? (
+                <Card className="relative overflow-hidden transition-all hover:shadow-md border-l-4 border-l-green-500 bg-primary/[0.03]">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-xs font-bold uppercase tracking-wider text-primary">
+                      Total Payable
+                    </CardTitle>
+                    <Banknote className="h-4 w-4 text-primary" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-primary">
+                      {formatCurrency(reportData.summary.totalPayable, reportData.summary.currency)}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Based on {formatCurrency(reportData.summary.hourlyRate, reportData.summary.currency)}/h
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="relative overflow-hidden transition-all hover:shadow-md bg-muted/30 grayscale opacity-80">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Total Payable
+                    </CardTitle>
+                    <Banknote className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-muted-foreground italic">
+                      N/A
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Set rate in Settings
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             <ReportInsights entries={reportData.entries} />
@@ -1426,6 +1538,15 @@ export default function ReportsPage() {
                   {formatDuration(reportData.summary.averageDailyWork)}
                 </span>
               </div>
+              
+              {reportData.summary.hourlyRate && (
+                <div className="flex justify-between font-bold pt-4 col-span-2 text-2xl border-t-2 border-black mt-2">
+                  <span>TOTAL A RECEBER</span>
+                  <span className="font-mono text-primary">
+                    {formatCurrency(reportData.summary.totalPayable, reportData.summary.currency)}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 

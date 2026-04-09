@@ -3,6 +3,7 @@
 import { formatDateForDisplay, formatTimeForDisplay, sql } from "@/lib/db";
 import crypto from "crypto";
 import { revalidatePath } from "next/cache";
+import { getUserSettings } from "./user-settings";
 
 export type ReportData = {
   entries: {
@@ -21,6 +22,9 @@ export type ReportData = {
     totalNetWork: number;
     averageDailyWork: number;
     daysWorked: number;
+    totalPayable: number;
+    hourlyRate: number | null;
+    currency: string;
   };
 };
 
@@ -122,6 +126,22 @@ export async function generateReport(
     const daysWorked = new Set(entries.map((entry: { date: string }) => entry.date)).size;
     const averageDailyWork = daysWorked > 0 ? totalNetWork / daysWorked : 0;
 
+    // Get user settings for billing
+    const settingsResult = await getUserSettings(userId);
+    let totalPayable = 0;
+    let hourlyRate = null;
+    let currency = "BRL";
+
+    if (settingsResult.success && settingsResult.data) {
+      hourlyRate = settingsResult.data.hourly_rate;
+      currency = settingsResult.data.currency;
+      
+      if (hourlyRate) {
+        // Calculate total payable: (net work in hours) * hourly rate
+        totalPayable = (totalNetWork / 3600000) * hourlyRate;
+      }
+    }
+
     return {
       success: true,
       data: {
@@ -132,6 +152,9 @@ export async function generateReport(
           totalNetWork,
           averageDailyWork,
           daysWorked,
+          totalPayable,
+          hourlyRate,
+          currency,
         },
       },
     };
@@ -530,6 +553,21 @@ export async function getGlobalReportAggregation(
     const daysWorked = daysWorkedSet.size;
     const averageDailyWork = daysWorked > 0 ? totalNetWork / daysWorked : 0;
 
+    // Get user settings for billing (Global aggregation)
+    const settingsResult = await getUserSettings(userId);
+    let totalPayable = 0;
+    let hourlyRate = null;
+    let currency = "BRL";
+
+    if (settingsResult.success && settingsResult.data) {
+      hourlyRate = settingsResult.data.hourly_rate;
+      currency = settingsResult.data.currency;
+      
+      if (hourlyRate) {
+        totalPayable = (totalNetWork / 3600000) * hourlyRate;
+      }
+    }
+
     return {
       success: true,
       data: {
@@ -540,6 +578,9 @@ export async function getGlobalReportAggregation(
           totalNetWork,
           averageDailyWork,
           daysWorked,
+          totalPayable,
+          hourlyRate,
+          currency,
         },
       },
     };
