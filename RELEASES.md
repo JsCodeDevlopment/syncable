@@ -10,6 +10,28 @@ Este documento registra todas as atualizações, melhorias e correções aplicad
 
 ---
 
+## [v1.4.0] - 2026-04-09
+
+### ✨ Faturamento e Cálculo de Valores (Billable Rates)
+
+- 💰 **Cálculo Automático de Ganhos:**
+  - O sistema agora calcula automaticamente o **Valor a Receber** com base no tempo líquido trabalhado e na taxa horária definida.
+  - Dashboards de relatórios (privados e compartilhados) agora exibem cards de resumo financeiro.
+- ⚙️ **Configuração de Taxa Horária:**
+  - Nova seção em "General Settings" para definir o **Valor/Hora** e a **Moeda** de preferência.
+- 🌍 **Suporte Multi-moeda:**
+  - Formatação nativa para **BRL, USD, EUR e GBP**, adaptando símbolos e casas decimais automaticamente.
+- 📄 **Exportação Financeira:**
+  - Exportação CSV atualizada com linhas de resumo de faturamento.
+  - Layout de impressão (PDF) profissionalizado com o sumário de "Total a Receber".
+
+### 🛠️ Correções e Melhorias
+
+- **Performance do Banco:** Implementada atualização automática de schema (soft migration) para garantir compatibilidade sem interrupções.
+- **Fix (React):** Removido aviso de `key prop` em listas de entradas de relatórios compartilhados.
+
+---
+
 ## [v1.3.0] - 2026-03-23
 
 ### ✨ Novidades e Recursos
