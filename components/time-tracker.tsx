@@ -387,7 +387,7 @@ export function TimeTracker({ userId }: { userId: number }) {
           <div className="text-7xl font-bold tracking-tighter tabular-nums text-foreground">
             {status === "idle"
               ? "00:00"
-              : formatTimer(elapsedTime - (status === "break" ? breakTime : 0))}
+              : formatTimer(elapsedTime)}
           </div>
           <div className="text-sm text-muted-foreground mt-2 font-medium">
             {status === "break"
