@@ -40,6 +40,8 @@ type GeneralSettingsProps = {
     timezone: string;
     auto_detect_breaks: boolean;
     theme: "light" | "dark" | "system";
+    hourly_rate: number | null;
+    currency: string;
   };
 };
 
@@ -59,6 +61,10 @@ export function GeneralSettings({
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [name, setName] = useState("");
   const [hasChanges, setHasChanges] = useState(false);
+  const [hourlyRate, setHourlyRate] = useState(
+    initialSettings.hourly_rate?.toString() || ""
+  );
+  const [currency, setCurrency] = useState(initialSettings.currency || "BRL");
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -156,6 +162,8 @@ export function GeneralSettings({
         working_hours: Number.parseInt(workingHours),
         timezone,
         auto_detect_breaks: autoBreak,
+        hourly_rate: hourlyRate ? Number.parseFloat(hourlyRate) : null,
+        currency,
       });
 
       if (result.success) {
@@ -306,8 +314,60 @@ export function GeneralSettings({
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleSaveGeneralSettings} disabled={true}>
-            Coming Soon
+          <Button onClick={handleSaveGeneralSettings} disabled={isSaving}>
+            {isSaving ? "Saving..." : "Save Settings"}
+          </Button>
+        </CardFooter>
+      </Card>
+
+      <Card className="w-full border-primary/20 bg-primary/[0.03]">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            Billing & Hourly Rates
+          </CardTitle>
+          <CardDescription>
+            Configure your billable rates to automatically calculate earnings in reports
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-2">
+            <Label htmlFor="hourly-rate">Hourly Rate</Label>
+            <div className="relative">
+              <span className="absolute left-3 top-2.5 text-muted-foreground text-sm font-medium">
+                {currency === "BRL" ? "R$" : currency === "USD" ? "$" : currency === "GBP" ? "£" : "€"}
+              </span>
+              <Input
+                id="hourly-rate"
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                className="pl-10"
+                value={hourlyRate}
+                onChange={(e) => setHourlyRate(e.target.value)}
+              />
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Amount you charge per hour of work.
+            </p>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="currency">Currency</Label>
+            <Select value={currency} onValueChange={setCurrency}>
+              <SelectTrigger id="currency">
+                <SelectValue placeholder="Select currency" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="BRL">Brazilian Real (BRL)</SelectItem>
+                <SelectItem value="USD">US Dollar (USD)</SelectItem>
+                <SelectItem value="EUR">Euro (EUR)</SelectItem>
+                <SelectItem value="GBP">British Pound (GBP)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+        <CardFooter>
+          <Button onClick={handleSaveGeneralSettings} disabled={isSaving}>
+            {isSaving ? "Saving..." : "Save Billing Settings"}
           </Button>
         </CardFooter>
       </Card>

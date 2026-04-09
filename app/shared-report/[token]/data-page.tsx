@@ -30,8 +30,10 @@ import {
 import { ReportInsights } from "@/components/report-insights";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDuration } from "@/lib/format-duration";
+import { formatCurrency } from "@/lib/format-currency";
 import {
   Activity,
+  Banknote,
   Calendar,
   Clock,
   Coffee,
@@ -41,7 +43,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { RichTextViewer } from "@/components/rich-text-editor";
 import { cn } from "@/lib/utils";
@@ -176,7 +178,7 @@ export function DataPage({ token }: DataPageProps) {
 
           {report.show_insights && <ReportInsights entries={reportData.entries} />}
 
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-4">
             <Card className="hover:shadow-lg transition-all border-l-4 border-l-blue-500 bg-gradient-to-br from-white to-blue-50/50 dark:from-background dark:to-background overflow-hidden relative">
               <div className="absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-blue-500/10 blur-2xl" />
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -231,6 +233,26 @@ export function DataPage({ token }: DataPageProps) {
                 </p>
               </CardContent>
             </Card>
+
+            {reportData.summary.hourlyRate ? (
+              <Card className="hover:shadow-lg transition-all border-l-4 border-l-green-500 bg-gradient-to-br from-primary/[0.02] to-primary/[0.05] dark:from-background dark:to-background overflow-hidden relative group">
+                <div className="absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-primary/10 blur-2xl group-hover:bg-primary/20 transition-colors" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-primary uppercase tracking-wider">Total Payable</CardTitle>
+                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                    <Banknote className="h-4 w-4" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-extrabold text-primary">
+                    {formatCurrency(reportData.summary.totalPayable, reportData.summary.currency)}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2 font-medium opacity-80">
+                    Based on {formatCurrency(reportData.summary.hourlyRate, reportData.summary.currency)}/h
+                  </p>
+                </CardContent>
+              </Card>
+            ) : null}
           </div>
 
           <Card className="shadow-sm overflow-hidden border-t-4 border-t-primary">
@@ -292,7 +314,7 @@ export function DataPage({ token }: DataPageProps) {
                               const isExpanded = expandedRows[entry.id];
                               
                               return (
-                                <>
+                                <Fragment key={entry.id}>
                                   <TableRow 
                                     key={entry.id} 
                                     className={cn(
@@ -346,7 +368,7 @@ export function DataPage({ token }: DataPageProps) {
                                       </TableCell>
                                     </TableRow>
                                   )}
-                                </>
+                                </Fragment>
                               );
                             })}
                           </TableBody>

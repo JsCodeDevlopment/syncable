@@ -1,5 +1,7 @@
 # Syncable - Gestão de Ponto & Payroll Dashboard
 
+![](https://img.shields.io/badge/Versão-1.4.0-black?style=for-the-badge)
+
 Plataforma moderna, intuitiva e responsiva desenvolvida para profissionais e empresas que buscam simplicidade e precisão no controle de jornada. O **Syncable** elimina a burocracia do registro de ponto, oferecendo uma experiência focada no que realmente importa: seu tempo.
 
 <h1 align="center">
@@ -42,6 +44,13 @@ O Syncable foi desenhado para ser seu aliado no dia a dia. Confira como a plataf
 - **Links Blindados:** Compartilhe seus relatórios através de links protegidos por tokens únicos.
 - **Controle de Expiração:** Defina por quanto tempo o link ficará ativo (1 dia, 1 semana, etc.).
 - **Privacidade Total:** Escolha se quem recebe o link pode ver seus gráficos de performance ou apenas as horas brutas.
+
+### 6. 💰 Faturamento e Cálculo de Valores
+
+- **Taxa Horária Personalizada:** Configure seu valor por hora trabalhada e deixe a plataforma fazer a matemática por você.
+- **Cálculo Automático (Payroll):** Saiba exatamente quanto receber ao final de cada período baseado no trabalho líquido e pausas.
+- **Suporte Multi-moeda:** Defina sua moeda de preferência entre **BRL, USD, EUR ou GBP** com formatação regional automática.
+- **Cards Financeiros:** Visualize o total a receber em destaque nos seus dashboards e relatórios compartilhados.
 
 ---
 

@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: {
-    default: "Syncable | The High-Performance Time Tracking Engine",
+    default: "Syncable",
     template: "%s | Syncable",
   },
   description:
