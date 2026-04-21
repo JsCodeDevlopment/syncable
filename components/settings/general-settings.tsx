@@ -25,6 +25,18 @@ import { toast } from "@/components/ui/use-toast";
 import { formatDateBR } from "@/lib/timezone";
 import { useEffect, useState } from "react";
 import { ThemeSettings } from "./theme-settings";
+import {
+  User,
+  Mail,
+  Calendar,
+  Clock,
+  Timer,
+  Globe,
+  Coins,
+  ShieldCheck,
+  Zap,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type UserProfile = {
   id: number;
@@ -55,9 +67,6 @@ export function GeneralSettings({
     initialSettings.working_hours.toString()
   );
   const [timezone, setTimezone] = useState(initialSettings.timezone);
-  const [autoBreak, setAutoBreak] = useState(
-    initialSettings.auto_detect_breaks
-  );
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [name, setName] = useState("");
   const [hasChanges, setHasChanges] = useState(false);
@@ -75,23 +84,15 @@ export function GeneralSettings({
           setName(result.data.name);
         } else {
           toast({
-            title: "Error Loading Profile",
-            description:
-              "We couldn't load your profile information. Please try refreshing the page.",
+            title: "Error",
+            description: "Failed to load profile information.",
             variant: "destructive",
           });
         }
       } catch (error) {
         console.error("Error loading profile:", error);
-        toast({
-          title: "Error Loading Profile",
-          description:
-            "An unexpected error occurred while loading your profile. Please try again later.",
-          variant: "destructive",
-        });
       }
     };
-
     loadProfile();
   }, [userId]);
 
@@ -104,31 +105,14 @@ export function GeneralSettings({
   }, [name, profile]);
 
   const handleSaveProfile = async () => {
-    if (!name.trim()) {
-      toast({
-        title: "Invalid Name",
-        description: "Your name cannot be empty. Please enter a valid name.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (name === profile?.name) {
-      toast({
-        title: "No Changes",
-        description: "Your name hasn't changed. No update needed.",
-      });
-      return;
-    }
-
+    if (!name.trim()) return;
     setIsSavingProfile(true);
     try {
       const result = await updateUserName(userId, name.trim());
       if (result.success) {
         toast({
-          title: "Profile Updated Successfully",
-          description:
-            "Your name has been updated. The changes will be reflected across your account.",
+          title: "Profile updated",
+          description: "Your name has been saved.",
         });
         if (profile) {
           setProfile({ ...profile, name: name.trim() });
@@ -136,20 +120,13 @@ export function GeneralSettings({
         }
       } else {
         toast({
-          title: "Failed to Update Profile",
-          description:
-            result.error || "We couldn't update your name. Please try again.",
+          title: "Error",
+          description: result.error || "Failed to update profile",
           variant: "destructive",
         });
       }
     } catch (error) {
       console.error("Error updating profile:", error);
-      toast({
-        title: "Unexpected Error",
-        description:
-          "Something went wrong while updating your profile. Please try again later.",
-        variant: "destructive",
-      });
     } finally {
       setIsSavingProfile(false);
     }
@@ -161,33 +138,24 @@ export function GeneralSettings({
       const result = await updateUserSettings(userId, {
         working_hours: Number.parseInt(workingHours),
         timezone,
-        auto_detect_breaks: autoBreak,
         hourly_rate: hourlyRate ? Number.parseFloat(hourlyRate) : null,
         currency,
       });
 
       if (result.success) {
         toast({
-          title: "Settings Saved Successfully",
-          description:
-            "Your preferences have been updated and will be applied immediately.",
+          title: "Settings saved",
+          description: "Your preferences have been updated.",
         });
       } else {
         toast({
-          title: "Failed to Save Settings",
-          description:
-            result.error || "We couldn't save your settings. Please try again.",
+          title: "Error",
+          description: result.error || "Failed to save settings",
           variant: "destructive",
         });
       }
     } catch (error) {
       console.error("Error saving settings:", error);
-      toast({
-        title: "Unexpected Error",
-        description:
-          "Something went wrong while saving your settings. Please try again later.",
-        variant: "destructive",
-      });
     } finally {
       setIsSaving(false);
     }
@@ -195,179 +163,193 @@ export function GeneralSettings({
 
   if (!profile) {
     return (
-      <div className="flex items-center justify-center h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="flex flex-col items-center justify-center h-[400px] gap-4">
+        <div className="h-8 w-8 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+        <p className="text-xs font-medium text-muted-foreground">Loading profile...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="grid gap-5 md:grid-cols-2">
-        <Card className="w-full">
-          <CardHeader>
-            <CardTitle>Profile Information</CardTitle>
-            <CardDescription>Update your profile information</CardDescription>
+    <div className="space-y-8 pt-4 animate-in fade-in duration-500">
+      <div className="grid gap-8 lg:grid-cols-2">
+        {/* Profile Section */}
+        <Card className="border-none shadow-sm bg-card/40 backdrop-blur-md bg-gradient-to-br from-primary/5 via-transparent to-transparent relative overflow-hidden group">
+          <CardHeader className="pb-6">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-primary/5 flex items-center justify-center border border-primary/10">
+                <User className="h-5 w-5 text-primary/80" />
+              </div>
+              <div>
+                <CardTitle className="text-xl font-bold tracking-tight">Identity</CardTitle>
+                <CardDescription className="text-xs font-medium opacity-60">Manage your personal information</CardDescription>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Name</Label>
+          <CardContent className="space-y-6">
+            <div className="grid gap-3">
+              <Label htmlFor="name" className="text-xs font-semibold ml-1">Full Name</Label>
               <Input
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Enter your name"
+                className="h-11 bg-background/50 border-border/60 focus:border-primary/50 rounded-xl font-medium"
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={profile.email}
-                readOnly
-                className="bg-muted"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label>Account Created</Label>
-              <div className="text-sm text-muted-foreground">
-                {formatDateBR(new Date(profile.created_at))}
+            <div className="grid gap-3">
+              <Label htmlFor="email" className="text-xs font-semibold ml-1">Email Address</Label>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground/40" />
+                <Input
+                  id="email"
+                  type="email"
+                  value={profile.email}
+                  readOnly
+                  className="pl-10 h-11 bg-muted/20 border-border/20 text-muted-foreground cursor-not-allowed rounded-xl"
+                />
               </div>
             </div>
+            <div className="flex items-center justify-between p-4 rounded-xl bg-primary/[0.02] border border-primary/5">
+              <div className="flex items-center gap-3 text-muted-foreground">
+                <Calendar className="h-4 w-4" />
+                <span className="text-[11px] font-medium uppercase tracking-wider">Member since</span>
+              </div>
+              <span className="text-sm font-semibold">
+                {formatDateBR(new Date(profile.created_at))}
+              </span>
+            </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="bg-muted/10 border-t border-border/40 pt-6">
             <Button
               onClick={handleSaveProfile}
               disabled={isSavingProfile || !hasChanges}
+              className="w-full h-11 rounded-xl font-semibold shadow-sm transition-all active:scale-[0.98]"
             >
-              {isSavingProfile
-                ? "Saving..."
-                : hasChanges
-                ? "Save Changes"
-                : "No Changes"}
+              {isSavingProfile ? "Saving..." : "Save Changes"}
             </Button>
           </CardFooter>
         </Card>
 
+        {/* Theme Section */}
         <ThemeSettings userId={userId} initialTheme={initialSettings.theme} />
       </div>
 
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            Time Tracking Settings
-            <span className="inline-flex items-center rounded-md bg-gray-800 px-2 py-1 text-xs font-medium text-gray-200 ring-1 ring-inset ring-gray-700">
-              Coming Soon
-            </span>
-          </CardTitle>
-          <CardDescription>
-            Configure your time tracking preferences
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-2">
-            <Label htmlFor="working-hours">Working Hours Per Day</Label>
-            <Select value={workingHours} onValueChange={setWorkingHours}>
-              <SelectTrigger id="working-hours">
-                <SelectValue placeholder="Select working hours" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="4">4 hours</SelectItem>
-                <SelectItem value="6">6 hours</SelectItem>
-                <SelectItem value="8">8 hours</SelectItem>
-                <SelectItem value="10">10 hours</SelectItem>
-                <SelectItem value="12">12 hours</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="timezone">Timezone</Label>
-            <Select value={timezone} onValueChange={setTimezone}>
-              <SelectTrigger id="timezone">
-                <SelectValue placeholder="Select timezone" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="UTC">UTC</SelectItem>
-                <SelectItem value="America/New_York">
-                  Eastern Time (EST)
-                </SelectItem>
-                <SelectItem value="America/Chicago">
-                  Central Time (CST)
-                </SelectItem>
-                <SelectItem value="America/Denver">
-                  Mountain Time (MST)
-                </SelectItem>
-                <SelectItem value="America/Los_Angeles">
-                  Pacific Time (PST)
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="auto-break"
-              checked={autoBreak}
-              onCheckedChange={setAutoBreak}
-            />
-            <Label htmlFor="auto-break">Automatically detect breaks</Label>
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button onClick={handleSaveGeneralSettings} disabled={isSaving}>
-            {isSaving ? "Saving..." : "Save Settings"}
-          </Button>
-        </CardFooter>
-      </Card>
-
-      <Card className="w-full border-primary/20 bg-primary/[0.03]">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            Billing & Hourly Rates
-          </CardTitle>
-          <CardDescription>
-            Configure your billable rates to automatically calculate earnings in reports
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-2">
-            <Label htmlFor="hourly-rate">Hourly Rate</Label>
-            <div className="relative">
-              <span className="absolute left-3 top-2.5 text-muted-foreground text-sm font-medium">
-                {currency === "BRL" ? "R$" : currency === "USD" ? "$" : currency === "GBP" ? "£" : "€"}
-              </span>
-              <Input
-                id="hourly-rate"
-                type="number"
-                step="0.01"
-                placeholder="0.00"
-                className="pl-10"
-                value={hourlyRate}
-                onChange={(e) => setHourlyRate(e.target.value)}
-              />
+      {/* Preferences Section */}
+      <Card className="border-none shadow-sm bg-card/40 backdrop-blur-md bg-gradient-to-br from-primary/5 via-transparent to-transparent relative overflow-hidden group">
+        <CardHeader className="pb-6">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-orange-500/5 flex items-center justify-center border border-orange-500/10">
+              <Timer className="h-5 w-5 text-orange-500/80" />
             </div>
-            <p className="text-[10px] text-muted-foreground">
-              Amount you charge per hour of work.
+            <div>
+              <CardTitle className="text-xl font-bold tracking-tight">Preferences</CardTitle>
+              <CardDescription className="text-xs font-medium opacity-60">Control how tracking and billing works</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-8">
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="space-y-6">
+              <div className="grid gap-3">
+                <Label htmlFor="working-hours" className="text-xs font-semibold flex items-center gap-2 ml-1 text-muted-foreground/80">
+                  <Clock className="h-3.5 w-3.5" /> Target Workload
+                </Label>
+                <Select value={workingHours} onValueChange={setWorkingHours}>
+                  <SelectTrigger id="working-hours" className="h-11 rounded-xl bg-background/50 border-border/60 font-medium">
+                    <SelectValue placeholder="Hours per day" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-border/60 backdrop-blur-xl">
+                    <SelectItem value="4">4 hours / day</SelectItem>
+                    <SelectItem value="6">6 hours / day</SelectItem>
+                    <SelectItem value="8">8 hours / day</SelectItem>
+                    <SelectItem value="10">10 hours / day</SelectItem>
+                    <SelectItem value="12">12 hours / day</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-3 p-4 rounded-xl bg-primary/[0.03] border border-primary/10 transition-all hover:bg-primary/[0.05]">
+                <div className="flex items-center justify-between">
+                   <Label htmlFor="timezone" className="text-xs font-bold flex items-center gap-2 ml-1 text-primary/80">
+                     <Globe className="h-3.5 w-3.5" /> Localization
+                   </Label>
+                   <span className="text-[9px] font-bold uppercase tracking-wider bg-primary/10 text-primary px-1.5 py-0.5 rounded">Region Set</span>
+                </div>
+                <Select value={timezone} onValueChange={setTimezone}>
+                  <SelectTrigger id="timezone" className="h-11 rounded-xl bg-background/60 border-primary/20 font-medium">
+                    <SelectValue placeholder="Select timezone" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-border/60 backdrop-blur-xl">
+                    <SelectItem value="UTC">UTC (Universal)</SelectItem>
+                    <SelectItem value="America/Sao_Paulo">Brasília (BRT)</SelectItem>
+                    <SelectItem value="America/New_York">New York (EST)</SelectItem>
+                    <SelectItem value="Europe/London">London (GMT)</SelectItem>
+                    <SelectItem value="America/Los_Angeles">Pacific (PST)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="grid gap-3 p-4 rounded-xl bg-primary/[0.03] border border-primary/10 transition-all hover:bg-primary/[0.05]">
+                <div className="flex items-center justify-between">
+                   <Label htmlFor="hourly-rate" className="text-xs font-bold flex items-center gap-2 ml-1 text-primary/80">
+                     <Coins className="h-3.5 w-3.5" /> Billing Rate
+                   </Label>
+                   <span className="text-[9px] font-bold uppercase tracking-wider bg-primary/10 text-primary px-1.5 py-0.5 rounded">Active rate</span>
+                </div>
+                <div className="relative">
+                  <div className="absolute left-4 top-3.5 text-xs font-bold text-primary/60">
+                    {currency === "BRL" ? "R$" : currency === "USD" ? "$" : currency === "EUR" ? "€" : "£"}
+                  </div>
+                  <Input
+                    id="hourly-rate"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    className="pl-12 h-11 bg-background/60 border-primary/20 focus:border-primary/50 rounded-xl font-medium tabular-nums"
+                    value={hourlyRate}
+                    onChange={(e) => setHourlyRate(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-3">
+                <Label htmlFor="currency" className="text-xs font-semibold flex items-center gap-2 ml-1 text-muted-foreground/80">
+                  Currency
+                </Label>
+                <Select value={currency} onValueChange={setCurrency}>
+                  <SelectTrigger id="currency" className="h-11 rounded-xl bg-background/50 border-border/60 font-medium">
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-border/60 backdrop-blur-xl">
+                    <SelectItem value="BRL">BRL - Real</SelectItem>
+                    <SelectItem value="USD">USD - Dollar</SelectItem>
+                    <SelectItem value="EUR">EUR - Euro</SelectItem>
+                    <SelectItem value="GBP">GBP - Pound</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+            <div className="h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
+              <ShieldCheck className="h-4 w-4 text-emerald-500/80" />
+            </div>
+            <p className="text-[11px] font-medium text-muted-foreground/80 leading-relaxed">
+              Your billing data and hourly rates are private and used only for personal revenue projections.
             </p>
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="currency">Currency</Label>
-            <Select value={currency} onValueChange={setCurrency}>
-              <SelectTrigger id="currency">
-                <SelectValue placeholder="Select currency" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="BRL">Brazilian Real (BRL)</SelectItem>
-                <SelectItem value="USD">US Dollar (USD)</SelectItem>
-                <SelectItem value="EUR">Euro (EUR)</SelectItem>
-                <SelectItem value="GBP">British Pound (GBP)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </CardContent>
-        <CardFooter>
-          <Button onClick={handleSaveGeneralSettings} disabled={isSaving}>
-            {isSaving ? "Saving..." : "Save Billing Settings"}
+        <CardFooter className="bg-muted/10 border-t border-border/40 pt-6">
+          <Button
+            onClick={handleSaveGeneralSettings}
+            disabled={isSaving}
+            className="w-full h-11 rounded-xl font-semibold shadow-sm transition-all active:scale-[0.98]"
+          >
+            {isSaving ? "Saving..." : "Save Preferences"}
           </Button>
         </CardFooter>
       </Card>
