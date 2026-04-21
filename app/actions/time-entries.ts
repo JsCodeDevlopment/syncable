@@ -234,7 +234,7 @@ export async function getTotalBreakTime(timeEntryId: number) {
 }
 
 // Get recent time entries for a user
-export async function getRecentTimeEntries(userId: number, limit = 5) {
+export async function getRecentTimeEntries(userId: number, limit: number = 10) {
   try {
     const timeEntries = (await sql`
       SELECT 

@@ -49,7 +49,7 @@ type Entry = {
   observations?: string | null;
 };
 
-export function RecentEntries({ userId }: { userId: number }) {
+export function RecentEntries({ userId, limit = 10 }: { userId: number, limit?: number }) {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [entryToDelete, setEntryToDelete] = useState<number | null>(null);
@@ -59,7 +59,7 @@ export function RecentEntries({ userId }: { userId: number }) {
   const fetchEntries = async () => {
     setIsLoading(true);
     try {
-      const result = await getRecentTimeEntries(userId);
+      const result = await getRecentTimeEntries(userId, limit);
       if (result.success && result.data) {
         setEntries(result.data as unknown as Entry[]);
       } else if (!result.success) {

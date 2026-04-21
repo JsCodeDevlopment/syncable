@@ -415,7 +415,7 @@ export function TimeTracker({ userId }: { userId: number }) {
         </div>
 
         <div className="text-center relative">
-          <div className="text-7xl font-bold tracking-tighter tabular-nums text-foreground">
+          <div className="text-8xl font-black tracking-tighter tabular-nums text-foreground drop-shadow-sm">
             {status === "idle"
               ? "00:00"
               : formatTimer(
@@ -424,46 +424,61 @@ export function TimeTracker({ userId }: { userId: number }) {
                     (status === "break" ? breakTime : 0),
                 )}
           </div>
-          <div className="text-sm text-muted-foreground mt-2 font-medium">
-            {status === "break"
-              ? `Break time: ${formatDuration(totalBreakTime + breakTime)}`
-              : `Total break: ${formatDuration(totalBreakTime)}`}
+          <div className="flex items-center justify-center gap-2 mt-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse" />
+            <div className="text-xs text-muted-foreground font-bold uppercase tracking-widest opacity-70">
+              {status === "break"
+                ? `Break: ${formatDuration(totalBreakTime + breakTime)}`
+                : `Total Break: ${formatDuration(totalBreakTime)}`}
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="max-w-md mx-auto w-full space-y-8">
         {status === "idle" && (
-          <div className="w-full space-y-4">
-            <div className="grid gap-2">
-              <Label htmlFor="project-select" className="text-xs text-muted-foreground ml-1">Select Project (Optional)</Label>
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="space-y-2 group">
+              <Label htmlFor="project-select" className="text-[10px] font-black text-muted-foreground/60 ml-1 uppercase tracking-[0.2em] group-focus-within:text-primary transition-colors">
+                Active Project
+              </Label>
               <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-                <SelectTrigger id="project-select" className="h-10">
-                  <SelectValue placeholder="No Project" />
+                <SelectTrigger id="project-select" className="h-12 bg-background/40 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-all rounded-xl focus:ring-primary/20">
+                  <SelectValue placeholder="No Project Selected" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No Project</SelectItem>
+                <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50 rounded-xl shadow-2xl">
+                  <SelectItem value="none" className="py-2.5">No Project</SelectItem>
                   {projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id.toString()}>
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full" style={{ backgroundColor: project.color }} />
-                        {project.name}
+                    <SelectItem key={project.id} value={project.id.toString()} className="py-2.5">
+                      <div className="flex items-center gap-3">
+                        <div className="h-2.5 w-2.5 rounded-full shadow-sm" style={{ backgroundColor: project.color }} />
+                        <span className="font-medium text-sm">{project.name}</span>
                       </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            
+            <div className="flex flex-col gap-4">
               <Button
                 onClick={handleStartWorking}
-                className="h-12 text-lg w-full bg-blue-600 hover:bg-blue-700"
+                className="h-14 text-lg font-bold w-full bg-primary hover:bg-primary/90 rounded-2xl shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                 disabled={isLoading}
               >
-                <Play className="mr-2 h-5 w-5 fill-current" />
-                {isLoading ? "Starting..." : "Start Working"}
+                <div className="bg-white/20 p-2 rounded-lg mr-3">
+                  <Play className="h-4 w-4 fill-current text-white" />
+                </div>
+                {isLoading ? "Synchronizing..." : "Start Focused Work"}
               </Button>
-              <div className="w-full">
+              
+              <div className="flex items-center justify-center">
+                <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-border/50 to-transparent" />
+                <span className="px-4 text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest">or</span>
+                <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-border/50 to-transparent" />
+              </div>
+
+              <div className="flex justify-center">
                 <ManualTimeEntry userId={userId} onSuccess={refreshData} />
               </div>
             </div>
@@ -471,48 +486,46 @@ export function TimeTracker({ userId }: { userId: number }) {
         )}
 
         {status === "working" && (
-          <>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <Button
               onClick={handleStartBreak}
               variant="outline"
-              className="h-12 text-md w-full border-orange-200 hover:bg-orange-50 hover:text-orange-600 dark:border-orange-800 dark:hover:bg-orange-900/20"
+              className="h-14 text-md font-bold w-full border-orange-500/30 bg-orange-500/5 hover:bg-orange-500/10 hover:text-orange-500 rounded-2xl transition-all"
               disabled={isLoading}
             >
               <Coffee className="mr-2 h-5 w-5" />
-              {isLoading ? "Processing..." : "Take a Break"}
+              {isLoading ? "Joining..." : "Take a Break"}
             </Button>
             <Button
               onClick={handleEndDay}
-              variant="destructive"
-              className="h-12 text-md w-full"
+              className="h-14 text-md font-bold w-full bg-red-500 hover:bg-red-600 rounded-2xl shadow-lg shadow-red-500/20 transition-all"
               disabled={isLoading}
             >
               <LogOut className="mr-2 h-5 w-5" />
-              {isLoading ? "Processing..." : "End Day"}
+              {isLoading ? "Completing..." : "End Session"}
             </Button>
-          </>
+          </div>
         )}
 
         {status === "break" && (
-          <>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <Button
               onClick={handleResumeWorking}
-              className="h-12 text-md w-full bg-green-600 hover:bg-green-700"
+              className="h-14 text-md font-bold w-full bg-green-500 hover:bg-green-600 rounded-2xl shadow-lg shadow-green-500/20 transition-all font-bold"
               disabled={isLoading}
             >
               <Play className="mr-2 h-5 w-5 fill-current" />
-              {isLoading ? "Processing..." : "Resume Working"}
+              {isLoading ? "Resuming..." : "Back to Work"}
             </Button>
             <Button
               onClick={handleEndDay}
-              variant="destructive"
-              className="h-12 text-md w-full"
+              className="h-14 text-md font-bold w-full bg-red-500 hover:bg-red-600 rounded-2xl shadow-lg shadow-red-500/20 transition-all"
               disabled={isLoading}
             >
               <LogOut className="mr-2 h-5 w-5" />
-              {isLoading ? "Processing..." : "End Day"}
+              {isLoading ? "Completing..." : "End Session"}
             </Button>
-          </>
+          </div>
         )}
       </div>
 
