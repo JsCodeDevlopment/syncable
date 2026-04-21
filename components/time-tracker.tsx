@@ -10,21 +10,36 @@ import {
   updateTimeEntry,
 } from "@/app/actions/time-entries";
 import { getProjects, type Project } from "@/app/actions/projects";
+import { RichTextEditor } from "@/components/rich-text-editor";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { formatDuration, formatTimer } from "@/lib/format-duration";
-import { Coffee, LogOut, Play, FileText, Clock, AlertCircle } from "lucide-react";
+import {
+  createBrazilianDate,
+  formatDateForInput,
+  formatTimeForInput,
+  getNowInBrazil,
+} from "@/lib/timezone";
+import {
+  AlertCircle,
+  Clock,
+  Coffee,
+  FileText,
+  LogOut,
+  Play,
+} from "lucide-react";
 import { useEffect, useState } from "react";
-import { ManualTimeEntry } from "./manual-time-entry";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
-} from "@/components/ui/dialog";
-import { RichTextEditor } from "@/components/rich-text-editor";
 import { Descendant } from "slate";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,6 +53,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Briefcase } from "lucide-react";
+import { ManualTimeEntry } from "./manual-time-entry";
 
 export function TimeTracker({ userId }: { userId: number }) {
   const [status, setStatus] = useState<"idle" | "working" | "break">("idle");
@@ -55,9 +71,9 @@ export function TimeTracker({ userId }: { userId: number }) {
   const [isFinishDialogOpen, setIsFinishDialogOpen] = useState(false);
   const [observations, setObservations] = useState<Descendant[]>([
     {
-      type: 'paragraph',
-      children: [{ text: '' }],
-    }
+      type: "paragraph",
+      children: [{ text: "" }],
+    },
   ]);
   const [isAdjustingStart, setIsAdjustingStart] = useState(false);
   const [adjustedStartTime, setAdjustedStartTime] = useState("");
@@ -67,15 +83,12 @@ export function TimeTracker({ userId }: { userId: number }) {
   const [selectedProjectId, setSelectedProjectId] = useState<string>("none");
   const [activeProject, setActiveProject] = useState<Project | null>(null);
 
-  // Create a custom event to notify other components when time entries change
   const triggerRefresh = () => {
     setRefreshTrigger((prev) => prev + 1);
-    // Dispatch a custom event that other components can listen for
     const event = new CustomEvent("timeEntryUpdated");
     window.dispatchEvent(event);
   };
 
-  // Check for active time entry on component mount
   useEffect(() => {
     const checkActiveTimeEntry = async () => {
       try {
@@ -99,7 +112,6 @@ export function TimeTracker({ userId }: { userId: number }) {
             setStatus("working");
           }
 
-          // Load up total break time for the active time entry
           const breakResult = await getTotalBreakTime(timeEntry.id);
           if (breakResult.success && breakResult.data) {
             setTotalBreakTime(breakResult.data);
@@ -153,7 +165,6 @@ export function TimeTracker({ userId }: { userId: number }) {
           totalElapsed -= totalBreakTime;
         }
         setElapsedTime(totalElapsed);
-        setTotalBreakTime(totalBreakTime);
       }, 1000);
     } else if (status === "break" && breakStartTime) {
       interval = setInterval(() => {
@@ -181,7 +192,7 @@ export function TimeTracker({ userId }: { userId: number }) {
         setElapsedTime(0);
         setBreakTime(0);
         setTotalBreakTime(0);
-        triggerRefresh(); // Trigger refresh after starting work
+        triggerRefresh();
       } else {
         toast({
           title: "Error",
@@ -253,7 +264,7 @@ export function TimeTracker({ userId }: { userId: number }) {
         setStatus("break");
         setActiveBreakId(result.data.id);
         setBreakStartTime(new Date(result.data.start_time));
-        triggerRefresh(); // Trigger refresh after starting break
+        triggerRefresh();
       } else {
         toast({
           title: "Error",
@@ -290,7 +301,7 @@ export function TimeTracker({ userId }: { userId: number }) {
         setTotalBreakTime(totalBreakTime + breakDuration);
         setBreakTime(0);
         setBreakStartTime(null);
-        triggerRefresh(); // Trigger refresh after resuming work
+        triggerRefresh();
       } else {
         toast({
           title: "Error",
@@ -323,7 +334,6 @@ export function TimeTracker({ userId }: { userId: number }) {
     setIsLoading(true);
 
     try {
-      // If on break, end the break first
       if (status === "break" && activeBreakId) {
         await endBreak(activeBreakId);
       }
@@ -335,7 +345,11 @@ export function TimeTracker({ userId }: { userId: number }) {
         finalEndTime = createBrazilianDate(dateStr, adjustedEndTime);
       }
 
-      const result = await endTimeEntry(activeTimeEntryId, JSON.stringify(observations), finalEndTime);
+      const result = await endTimeEntry(
+        activeTimeEntryId,
+        JSON.stringify(observations),
+        finalEndTime,
+      );
 
       if (result.success) {
         setStatus("idle");
@@ -346,10 +360,9 @@ export function TimeTracker({ userId }: { userId: number }) {
         setElapsedTime(0);
         setBreakTime(0);
         setTotalBreakTime(0);
-        setObservations([{ type: 'paragraph', children: [{ text: '' }] }]);
+        setObservations([{ type: "paragraph", children: [{ text: "" }] }]);
         setIsFinishDialogOpen(false);
 
-        // Trigger refresh after ending day
         triggerRefresh();
 
         toast({
@@ -376,7 +389,6 @@ export function TimeTracker({ userId }: { userId: number }) {
   };
 
   const refreshData = () => {
-    // Refresh active time entry data after manual entry
     triggerRefresh();
   };
 
@@ -418,11 +430,7 @@ export function TimeTracker({ userId }: { userId: number }) {
           <div className="text-8xl font-black tracking-tighter tabular-nums text-foreground drop-shadow-sm">
             {status === "idle"
               ? "00:00"
-              : formatTimer(
-                  elapsedTime -
-                    totalBreakTime -
-                    (status === "break" ? breakTime : 0),
-                )}
+              : formatTimer(elapsedTime)}
           </div>
           <div className="flex items-center justify-center gap-2 mt-2">
             <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse" />
@@ -584,13 +592,13 @@ export function TimeTracker({ userId }: { userId: number }) {
         </div>
       )}
 
-      {/* Finish Day Dialog */}
       <Dialog open={isFinishDialogOpen} onOpenChange={setIsFinishDialogOpen}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Finalize Your Jornada</DialogTitle>
             <DialogDescription>
-              Great job today! Would you like to add any observations about what you've done?
+              Great job today! Would you like to add any observations about what
+              you've done?
             </DialogDescription>
           </DialogHeader>
 
@@ -600,21 +608,28 @@ export function TimeTracker({ userId }: { userId: number }) {
                 <Clock className="h-4 w-4" />
                 <span>Delayed Exit?</span>
               </div>
-              
+
               <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="delayed-exit" 
-                  checked={isDelayedExit} 
-                  onCheckedChange={(checked) => setIsDelayedExit(checked === true)}
+                <Checkbox
+                  id="delayed-exit"
+                  checked={isDelayedExit}
+                  onCheckedChange={(checked) =>
+                    setIsDelayedExit(checked === true)
+                  }
                 />
-                <Label htmlFor="delayed-exit" className="text-sm cursor-pointer font-normal">
+                <Label
+                  htmlFor="delayed-exit"
+                  className="text-sm cursor-pointer font-normal"
+                >
                   I forgot to end my jornada earlier
                 </Label>
               </div>
 
               {isDelayedExit && (
                 <div className="grid gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <Label htmlFor="end-time" className="text-xs">Actual End Time</Label>
+                  <Label htmlFor="end-time" className="text-xs">
+                    Actual End Time
+                  </Label>
                   <Input
                     id="end-time"
                     type="time"
@@ -634,38 +649,46 @@ export function TimeTracker({ userId }: { userId: number }) {
                 <FileText className="h-4 w-4" />
                 <span>Observations (Optional)</span>
               </div>
-              
+
               <div className="border rounded-lg overflow-hidden min-h-[200px]">
-              <RichTextEditor
-                value={observations}
-                onChange={setObservations}
-                mode="controlled"
-                minHeight="200px"
-                maxHeight="400px"
-                placeholder="Summary of today's work..."
-              />
+                <RichTextEditor
+                  value={observations}
+                  onChange={setObservations}
+                  mode="controlled"
+                  minHeight="200px"
+                  maxHeight="400px"
+                  placeholder="Summary of today's work..."
+                />
+              </div>
             </div>
           </div>
-        </div>
 
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsFinishDialogOpen(false)} disabled={isLoading}>
+            <Button
+              variant="ghost"
+              onClick={() => setIsFinishDialogOpen(false)}
+              disabled={isLoading}
+            >
               Cancel
             </Button>
-            <Button onClick={confirmEndDay} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700 min-w-[120px]">
+            <Button
+              onClick={confirmEndDay}
+              disabled={isLoading}
+              className="bg-blue-600 hover:bg-blue-700 min-w-[120px]"
+            >
               {isLoading ? "Saving..." : "End My Day"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Adjust Start Time Dialog */}
       <Dialog open={isAdjustingStart} onOpenChange={setIsAdjustingStart}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
             <DialogTitle>Adjust Start Time</DialogTitle>
             <DialogDescription>
-              Forgot to start your jornada? Set the time you actually started working.
+              Forgot to start your jornada? Set the time you actually started
+              working.
             </DialogDescription>
           </DialogHeader>
 
@@ -676,7 +699,7 @@ export function TimeTracker({ userId }: { userId: number }) {
                 This will adjust your entry start time for today's session.
               </p>
             </div>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="adj-start-time">Actual Start Time</Label>
               <Input
@@ -690,10 +713,18 @@ export function TimeTracker({ userId }: { userId: number }) {
           </div>
 
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsAdjustingStart(false)} disabled={isLoading}>
+            <Button
+              variant="ghost"
+              onClick={() => setIsAdjustingStart(false)}
+              disabled={isLoading}
+            >
               Cancel
             </Button>
-            <Button onClick={handleAdjustStartTime} disabled={isLoading || !adjustedStartTime} className="bg-blue-600 hover:bg-blue-700 min-w-[120px]">
+            <Button
+              onClick={handleAdjustStartTime}
+              disabled={isLoading || !adjustedStartTime}
+              className="bg-blue-600 hover:bg-blue-700 min-w-[120px]"
+            >
               {isLoading ? "Updating..." : "Update Start Time"}
             </Button>
           </DialogFooter>
