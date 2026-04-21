@@ -86,6 +86,7 @@ import {
   type ReportData,
   type SharedReport,
 } from "../actions/reports";
+import { getProjects } from "../actions/projects";
 
 export default function ReportsPage() {
   const [userId, setUserId] = useState<number | null>(null);
@@ -97,6 +98,8 @@ export default function ReportsPage() {
   const [isPublic, setIsPublic] = useState(false);
   const [shareDuration, setShareDuration] = useState("7");
   const [showInsightsInShare, setShowInsightsInShare] = useState(true);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
+  const [projects, setProjects] = useState<any[]>([]);
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
@@ -121,7 +124,6 @@ export default function ReportsPage() {
   const [isFetchingGlobal, setIsFetchingGlobal] = useState(false);
 
   useEffect(() => {
-    // Get user ID using the server action
     const fetchUser = async () => {
       try {
         const user = await getCurrentUser();
@@ -136,6 +138,23 @@ export default function ReportsPage() {
 
     fetchUser();
   }, []);
+
+  useEffect(() => {
+    const loadProjects = async () => {
+      if (userId) {
+        try {
+          const result = await getProjects(userId);
+          if (result.success && result.data) {
+            setProjects(result.data);
+          }
+        } catch (error) {
+          console.error("Error loading projects:", error);
+        }
+      }
+    };
+
+    loadProjects();
+  }, [userId]);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -265,6 +284,7 @@ export default function ReportsPage() {
         startDate,
         endDate,
         activeTab,
+        selectedProjectId === "all" ? null : parseInt(selectedProjectId)
       );
       console.log("Report generation result:", result);
 
@@ -341,6 +361,7 @@ export default function ReportsPage() {
 
       const headers = [
         "Data",
+        "Projeto",
         "Início",
         "Fim",
         "Duração",
@@ -365,6 +386,7 @@ export default function ReportsPage() {
         }
         return [
           entry.date,
+          entry.project_name || "N/A",
           entry.startTime,
           entry.endTime || "Em execução",
           formatDuration(entry.duration),
@@ -463,7 +485,8 @@ export default function ReportsPage() {
         Number.parseInt(shareDuration),
         showInsightsInShare,
         reportName,
-        reportCpfCnpj
+        reportCpfCnpj,
+        selectedProjectId === "all" ? null : parseInt(selectedProjectId)
       );
 
       if (result.success) {
@@ -697,6 +720,29 @@ export default function ReportsPage() {
                         onChange={(e) => setReportCpfCnpj(e.target.value)}
                       />
                     </div>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label>Filter by Project</Label>
+                    <Select
+                      value={selectedProjectId}
+                      onValueChange={setSelectedProjectId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="All Projects" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">General (All Projects)</SelectItem>
+                        {projects.map((project) => (
+                          <SelectItem key={project.id} value={project.id.toString()}>
+                            <div className="flex items-center gap-2">
+                              <div className="h-2 w-2 rounded-full" style={{ backgroundColor: project.color }} />
+                              {project.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <Button

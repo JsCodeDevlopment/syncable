@@ -19,9 +19,18 @@ import { Separator } from "@/components/ui/separator"
 import { toast } from "@/components/ui/use-toast"
 import { createBrazilianDate, formatDateForInput, getNowInBrazil } from "@/lib/timezone"
 import { Calendar as CalendarIcon, Clock, Coffee, PlusCircle, Trash2, FileText } from "lucide-react"
-import { useState } from "react"
 import { RichTextEditor } from "@/components/rich-text-editor"
 import { Descendant } from "slate"
+import { getProjects, type Project } from "@/app/actions/projects"
+import { useEffect, useState } from "react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Briefcase } from "lucide-react"
 
 interface ManualTimeEntryProps {
   userId: number
@@ -45,6 +54,22 @@ export function ManualTimeEntry({ userId, onSuccess }: ManualTimeEntryProps) {
       children: [{ text: '' }],
     }
   ])
+  const [projects, setProjects] = useState<Project[]>([])
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("none")
+
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        const result = await getProjects(userId)
+        if (result.success && result.data) {
+          setProjects(result.data)
+        }
+      } catch (error) {
+        console.error("Error loading projects:", error)
+      }
+    }
+    if (open) loadProjects()
+  }, [userId, open])
 
   const addBreak = () => {
     setBreaks([...breaks, { id: nextBreakId, startTime: "12:00", endTime: "13:00" }])
@@ -120,12 +145,14 @@ export function ManualTimeEntry({ userId, onSuccess }: ManualTimeEntryProps) {
       })
 
       // Submit the entry
+      const projectId = selectedProjectId === "none" ? null : parseInt(selectedProjectId)
       const result = await createManualTimeEntry(
         userId, 
         startDateTime, 
         endDateTime, 
         formattedBreaks,
-        JSON.stringify(observations)
+        JSON.stringify(observations),
+        projectId
       )
 
       if (result.success) {
@@ -179,6 +206,26 @@ export function ManualTimeEntry({ userId, onSuccess }: ManualTimeEntryProps) {
             </div>
 
             <div className="grid gap-4 p-4 border rounded-lg bg-muted/20">
+              <div className="grid gap-2">
+                <Label htmlFor="manual-project-select">Project (Optional)</Label>
+                <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                  <SelectTrigger id="manual-project-select">
+                    <SelectValue placeholder="No Project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Project</SelectItem>
+                    {projects.map((project) => (
+                      <SelectItem key={project.id} value={project.id.toString()}>
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full" style={{ backgroundColor: project.color }} />
+                          {project.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="grid gap-2">
                 <Label htmlFor="date">Date</Label>
                 <div className="relative">

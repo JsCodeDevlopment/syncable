@@ -4,6 +4,7 @@ import { DashboardHeader } from "@/components/dashboard-header";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { GeneralSettings } from "@/components/settings/general-settings";
 import { NotificationSettings } from "@/components/settings/notification-settings";
+import { ProjectSettings } from "@/components/settings/project-settings";
 import { SharingSettings } from "@/components/settings/sharing-settings";
 import {
   Card,
@@ -117,8 +118,9 @@ export default function SettingsPage() {
       />
 
       <Tabs defaultValue="general">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="projects">Projects</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="sharing">Sharing</TabsTrigger>
         </TabsList>
@@ -135,6 +137,10 @@ export default function SettingsPage() {
               currency: settings.currency,
             }}
           />
+        </TabsContent>
+
+        <TabsContent value="projects">
+          <ProjectSettings userId={userId} />
         </TabsContent>
 
         <TabsContent value="notifications">

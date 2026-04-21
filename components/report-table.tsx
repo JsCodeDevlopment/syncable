@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Fragment } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,6 +19,8 @@ interface ReportTableProps {
     breaks: number
     netWork: number
     observations?: string | null
+    project_name?: string | null
+    project_color?: string | null
   }[]
 }
 
@@ -66,6 +68,7 @@ export function ReportTable({ data }: ReportTableProps) {
           <TableHeader>
             <TableRow className="bg-muted/30">
               <TableHead className="w-[120px]">Date</TableHead>
+              <TableHead>Project</TableHead>
               <TableHead>Start Time</TableHead>
               <TableHead>End Time</TableHead>
               <TableHead>Duration</TableHead>
@@ -87,7 +90,7 @@ export function ReportTable({ data }: ReportTableProps) {
                 const isExpanded = expandedRows[entry.id]
 
                 return (
-                  <>
+                  <Fragment key={entry.id}>
                     <TableRow 
                       key={entry.id} 
                       className={cn(
@@ -98,6 +101,16 @@ export function ReportTable({ data }: ReportTableProps) {
                       onClick={() => observationContent && toggleRow(entry.id)}
                     >
                       <TableCell className="font-medium">{entry.date}</TableCell>
+                      <TableCell>
+                        {entry.project_name ? (
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.project_color || "#ccc" }} />
+                            <span className="text-xs">{entry.project_name}</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">No project</span>
+                        )}
+                      </TableCell>
                       <TableCell>{entry.startTime}</TableCell>
                       <TableCell>{entry.endTime || "In progress"}</TableCell>
                       <TableCell>{formatDuration(entry.duration)}</TableCell>
@@ -121,7 +134,7 @@ export function ReportTable({ data }: ReportTableProps) {
                     </TableRow>
                     {isExpanded && observationContent && (
                       <TableRow className="bg-muted/20 border-t-0">
-                        <TableCell colSpan={7} className="p-0">
+                        <TableCell colSpan={8} className="p-0">
                           <div className="px-6 py-4 animate-in slide-in-from-top-2 duration-200">
                             <div className="rounded-xl border bg-background p-4 shadow-sm ring-1 ring-border/50">
                               <div className="flex items-center gap-2 mb-3 border-b pb-2">
@@ -134,12 +147,12 @@ export function ReportTable({ data }: ReportTableProps) {
                         </TableCell>
                       </TableRow>
                     )}
-                  </>
+                  </Fragment>
                 );
               })
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
+                <TableCell colSpan={8} className="h-24 text-center">
                   No results found.
                 </TableCell>
               </TableRow>

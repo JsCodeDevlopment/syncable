@@ -9,6 +9,7 @@ import {
   startTimeEntry,
   updateTimeEntry,
 } from "@/app/actions/time-entries";
+import { getProjects, type Project } from "@/app/actions/projects";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { formatDuration, formatTimer } from "@/lib/format-duration";
@@ -29,6 +30,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createBrazilianDate, formatDateForInput, formatTimeForInput, getNowInBrazil } from "@/lib/timezone";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Briefcase } from "lucide-react";
 
 export function TimeTracker({ userId }: { userId: number }) {
   const [status, setStatus] = useState<"idle" | "working" | "break">("idle");
@@ -54,6 +63,9 @@ export function TimeTracker({ userId }: { userId: number }) {
   const [adjustedStartTime, setAdjustedStartTime] = useState("");
   const [isDelayedExit, setIsDelayedExit] = useState(false);
   const [adjustedEndTime, setAdjustedEndTime] = useState("");
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("none");
+  const [activeProject, setActiveProject] = useState<Project | null>(null);
 
   // Create a custom event to notify other components when time entries change
   const triggerRefresh = () => {
@@ -74,6 +86,10 @@ export function TimeTracker({ userId }: { userId: number }) {
 
           setActiveTimeEntryId(timeEntry.id);
           setStartTime(new Date(timeEntry.start_time));
+          
+          if (timeEntry.project_id) {
+            setSelectedProjectId(timeEntry.project_id.toString());
+          }
 
           if (activeBreak) {
             setStatus("break");
@@ -100,8 +116,29 @@ export function TimeTracker({ userId }: { userId: number }) {
       }
     };
 
+    const loadProjects = async () => {
+      try {
+        const result = await getProjects(userId);
+        if (result.success && result.data) {
+          setProjects(result.data);
+        }
+      } catch (error) {
+        console.error("Error loading projects:", error);
+      }
+    };
+
     checkActiveTimeEntry();
+    loadProjects();
   }, [userId, refreshTrigger]);
+
+  useEffect(() => {
+    if (selectedProjectId !== "none") {
+      const project = projects.find(p => p.id.toString() === selectedProjectId);
+      setActiveProject(project || null);
+    } else {
+      setActiveProject(null);
+    }
+  }, [selectedProjectId, projects]);
 
   // Update elapsed time
   useEffect(() => {
@@ -134,7 +171,8 @@ export function TimeTracker({ userId }: { userId: number }) {
     setIsLoading(true);
 
     try {
-      const result = await startTimeEntry(userId);
+      const projectId = selectedProjectId === "none" ? null : parseInt(selectedProjectId);
+      const result = await startTimeEntry(userId, projectId);
 
       if (result.success && result.data) {
         setStatus("working");
@@ -396,19 +434,40 @@ export function TimeTracker({ userId }: { userId: number }) {
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {status === "idle" && (
-          <>
-            <Button
-              onClick={handleStartWorking}
-              className="h-12 text-lg w-full bg-blue-600 hover:bg-blue-700"
-              disabled={isLoading}
-            >
-              <Play className="mr-2 h-5 w-5 fill-current" />
-              {isLoading ? "Starting..." : "Start Working"}
-            </Button>
-            <div className="w-full">
-              <ManualTimeEntry userId={userId} onSuccess={refreshData} />
+          <div className="w-full space-y-4">
+            <div className="grid gap-2">
+              <Label htmlFor="project-select" className="text-xs text-muted-foreground ml-1">Select Project (Optional)</Label>
+              <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                <SelectTrigger id="project-select" className="h-10">
+                  <SelectValue placeholder="No Project" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Project</SelectItem>
+                  {projects.map((project) => (
+                    <SelectItem key={project.id} value={project.id.toString()}>
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full" style={{ backgroundColor: project.color }} />
+                        {project.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Button
+                onClick={handleStartWorking}
+                className="h-12 text-lg w-full bg-blue-600 hover:bg-blue-700"
+                disabled={isLoading}
+              >
+                <Play className="mr-2 h-5 w-5 fill-current" />
+                {isLoading ? "Starting..." : "Start Working"}
+              </Button>
+              <div className="w-full">
+                <ManualTimeEntry userId={userId} onSuccess={refreshData} />
+              </div>
+            </div>
+          </div>
         )}
 
         {status === "working" && (
@@ -458,40 +517,57 @@ export function TimeTracker({ userId }: { userId: number }) {
       </div>
 
       {status !== "idle" && (
-        <div className="rounded-lg bg-muted/50 p-3 text-center text-xs text-muted-foreground">
-          Started working at{" "}
-          <span className="font-medium text-foreground">
-            {startTime?.toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="ml-2 h-7 px-2 text-[10px] text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
-            onClick={() => {
-              if (startTime) {
-                setAdjustedStartTime(formatTimeForInput(startTime));
-                setIsAdjustingStart(true);
-              }
-            }}
-          >
-            <Clock className="mr-1 h-3 w-3" />
-            Delayed entry?
-          </Button>
-          {status === "break" && (
-            <span>
-              {" "}
-              • Break started at{" "}
-              <span className="font-medium text-foreground">
-                {breakStartTime?.toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
-            </span>
+        <div className="space-y-3">
+          {activeProject && (
+            <div className="flex justify-center">
+              <div 
+                className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 border"
+                style={{ 
+                  backgroundColor: `${activeProject.color}10`, 
+                  color: activeProject.color,
+                  borderColor: `${activeProject.color}30`
+                }}
+              >
+                <Briefcase className="h-3 w-3" />
+                {activeProject.name}
+              </div>
+            </div>
           )}
+          <div className="rounded-lg bg-muted/50 p-3 text-center text-xs text-muted-foreground">
+            Started working at{" "}
+            <span className="font-medium text-foreground">
+              {startTime?.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="ml-2 h-7 px-2 text-[10px] text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
+              onClick={() => {
+                if (startTime) {
+                  setAdjustedStartTime(formatTimeForInput(startTime));
+                  setIsAdjustingStart(true);
+                }
+              }}
+            >
+              <Clock className="mr-1 h-3 w-3" />
+              Delayed entry?
+            </Button>
+            {status === "break" && (
+              <span>
+                {" "}
+                • Break started at{" "}
+                <span className="font-medium text-foreground">
+                  {breakStartTime?.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </span>
+            )}
+          </div>
         </div>
       )}
 

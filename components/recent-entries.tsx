@@ -43,6 +43,9 @@ type Entry = {
   status: string;
   total_break_time: number;
   breaks?: Break[];
+  project_id?: number | null;
+  project_name?: string | null;
+  project_color?: string | null;
   observations?: string | null;
 };
 
@@ -206,6 +209,24 @@ export function RecentEntries({ userId }: { userId: number }) {
                   <div className="space-y-1">
                     <div className="font-semibold text-sm flex items-center gap-2">
                       {formatDate(entry.start_time)}
+                      {entry.project_name && (
+                        <div
+                          className="px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border flex items-center gap-1"
+                          style={{
+                            backgroundColor: `${entry.project_color || "#71717a"}10`,
+                            color: entry.project_color || "#71717a",
+                            borderColor: `${entry.project_color || "#71717a"}30`,
+                          }}
+                        >
+                          <div
+                            className="h-1 w-1 rounded-full"
+                            style={{
+                              backgroundColor: entry.project_color || "#71717a",
+                            }}
+                          />
+                          {entry.project_name}
+                        </div>
+                      )}
                       {entry.status === "active" && (
                         <Badge
                           variant="default"
@@ -249,6 +270,7 @@ export function RecentEntries({ userId }: { userId: number }) {
                       initialStartTime={startTime}
                       initialEndTime={endTime}
                       initialObservations={entry.observations}
+                      initialProjectId={entry.project_id}
                       breaks={formattedBreaks}
                       onSuccess={refreshEntries}
                     />
