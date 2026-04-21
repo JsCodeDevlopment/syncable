@@ -1,5 +1,6 @@
 "use client";
 
+import { getProjects, type Project } from "@/app/actions/projects";
 import {
   endBreak,
   endTimeEntry,
@@ -9,7 +10,6 @@ import {
   startTimeEntry,
   updateTimeEntry,
 } from "@/app/actions/time-entries";
-import { getProjects, type Project } from "@/app/actions/projects";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -23,6 +23,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
 import { formatDuration, formatTimer } from "@/lib/format-duration";
 import {
@@ -33,6 +40,7 @@ import {
 } from "@/lib/timezone";
 import {
   AlertCircle,
+  Briefcase,
   Clock,
   Coffee,
   FileText,
@@ -41,18 +49,6 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Descendant } from "slate";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { createBrazilianDate, formatDateForInput, formatTimeForInput, getNowInBrazil } from "@/lib/timezone";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Briefcase } from "lucide-react";
 import { ManualTimeEntry } from "./manual-time-entry";
 
 export function TimeTracker({ userId }: { userId: number }) {
@@ -99,7 +95,7 @@ export function TimeTracker({ userId }: { userId: number }) {
 
           setActiveTimeEntryId(timeEntry.id);
           setStartTime(new Date(timeEntry.start_time));
-          
+
           if (timeEntry.project_id) {
             setSelectedProjectId(timeEntry.project_id.toString());
           }
@@ -145,7 +141,9 @@ export function TimeTracker({ userId }: { userId: number }) {
 
   useEffect(() => {
     if (selectedProjectId !== "none") {
-      const project = projects.find(p => p.id.toString() === selectedProjectId);
+      const project = projects.find(
+        (p) => p.id.toString() === selectedProjectId,
+      );
       setActiveProject(project || null);
     } else {
       setActiveProject(null);
@@ -182,7 +180,8 @@ export function TimeTracker({ userId }: { userId: number }) {
     setIsLoading(true);
 
     try {
-      const projectId = selectedProjectId === "none" ? null : parseInt(selectedProjectId);
+      const projectId =
+        selectedProjectId === "none" ? null : parseInt(selectedProjectId);
       const result = await startTimeEntry(userId, projectId);
 
       if (result.success && result.data) {
@@ -428,9 +427,7 @@ export function TimeTracker({ userId }: { userId: number }) {
 
         <div className="text-center relative">
           <div className="text-8xl font-black tracking-tighter tabular-nums text-foreground drop-shadow-sm">
-            {status === "idle"
-              ? "00:00"
-              : formatTimer(elapsedTime)}
+            {status === "idle" ? "00:00" : formatTimer(elapsedTime)}
           </div>
           <div className="flex items-center justify-center gap-2 mt-2">
             <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse" />
@@ -447,27 +444,47 @@ export function TimeTracker({ userId }: { userId: number }) {
         {status === "idle" && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="space-y-2 group">
-              <Label htmlFor="project-select" className="text-[10px] font-black text-muted-foreground/60 ml-1 uppercase tracking-[0.2em] group-focus-within:text-primary transition-colors">
+              <Label
+                htmlFor="project-select"
+                className="text-[10px] font-black text-muted-foreground/60 ml-1 uppercase tracking-[0.2em] group-focus-within:text-primary transition-colors"
+              >
                 Active Project
               </Label>
-              <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-                <SelectTrigger id="project-select" className="h-12 bg-background/40 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-all rounded-xl focus:ring-primary/20">
+              <Select
+                value={selectedProjectId}
+                onValueChange={setSelectedProjectId}
+              >
+                <SelectTrigger
+                  id="project-select"
+                  className="h-12 bg-background/40 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-all rounded-xl focus:ring-primary/20"
+                >
                   <SelectValue placeholder="No Project Selected" />
                 </SelectTrigger>
                 <SelectContent className="bg-background/95 backdrop-blur-xl border-border/50 rounded-xl shadow-2xl">
-                  <SelectItem value="none" className="py-2.5">No Project</SelectItem>
+                  <SelectItem value="none" className="py-2.5">
+                    No Project
+                  </SelectItem>
                   {projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id.toString()} className="py-2.5">
+                    <SelectItem
+                      key={project.id}
+                      value={project.id.toString()}
+                      className="py-2.5"
+                    >
                       <div className="flex items-center gap-3">
-                        <div className="h-2.5 w-2.5 rounded-full shadow-sm" style={{ backgroundColor: project.color }} />
-                        <span className="font-medium text-sm">{project.name}</span>
+                        <div
+                          className="h-2.5 w-2.5 rounded-full shadow-sm"
+                          style={{ backgroundColor: project.color }}
+                        />
+                        <span className="font-medium text-sm">
+                          {project.name}
+                        </span>
                       </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="flex flex-col gap-4">
               <Button
                 onClick={handleStartWorking}
@@ -479,10 +496,12 @@ export function TimeTracker({ userId }: { userId: number }) {
                 </div>
                 {isLoading ? "Synchronizing..." : "Start Focused Work"}
               </Button>
-              
+
               <div className="flex items-center justify-center">
                 <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-border/50 to-transparent" />
-                <span className="px-4 text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest">or</span>
+                <span className="px-4 text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest">
+                  or
+                </span>
                 <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-border/50 to-transparent" />
               </div>
 
@@ -541,12 +560,12 @@ export function TimeTracker({ userId }: { userId: number }) {
         <div className="space-y-3">
           {activeProject && (
             <div className="flex justify-center">
-              <div 
+              <div
                 className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 border"
-                style={{ 
-                  backgroundColor: `${activeProject.color}10`, 
+                style={{
+                  backgroundColor: `${activeProject.color}10`,
                   color: activeProject.color,
-                  borderColor: `${activeProject.color}30`
+                  borderColor: `${activeProject.color}30`,
                 }}
               >
                 <Briefcase className="h-3 w-3" />
