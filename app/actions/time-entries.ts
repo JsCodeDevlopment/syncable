@@ -26,10 +26,13 @@ ensureObservationsColumn()
 export type TimeEntry = {
   id: number
   user_id: number
+  project_id?: number | null
   start_time: Date
   end_time: Date | null
   status: "active" | "completed" | "deleted"
   observations?: string | null
+  project_name?: string | null
+  project_color?: string | null
   created_at: Date
   updated_at: Date
 }
@@ -44,12 +47,12 @@ export type Break = {
 }
 
 // Start a new time entry
-export async function startTimeEntry(userId: number) {
+export async function startTimeEntry(userId: number, projectId?: number | null) {
   try {
     const result = (await sql`
-      INSERT INTO time_entries (user_id, start_time, status)
-      VALUES (${userId}, NOW(), 'active')
-      RETURNING id, user_id, start_time, end_time, status, created_at, updated_at
+      INSERT INTO time_entries (user_id, project_id, start_time, status)
+      VALUES (${userId}, ${projectId || null}, NOW(), 'active')
+      RETURNING id, user_id, project_id, start_time, end_time, status, created_at, updated_at
     `) as TimeEntry[]
 
     revalidatePath("/dashboard")
@@ -166,10 +169,13 @@ export async function endBreak(breakId: number) {
 export async function getActiveTimeEntry(userId: number) {
   try {
     const timeEntries = (await sql`
-      SELECT id, user_id, start_time, end_time, status, observations, created_at, updated_at
-      FROM time_entries
-      WHERE user_id = ${userId} AND status = 'active' AND end_time IS NULL
-      ORDER BY start_time DESC
+      SELECT 
+        te.id, te.user_id, te.project_id, te.start_time, te.end_time, te.status, te.observations, te.created_at, te.updated_at,
+        p.name as project_name, p.color as project_color
+      FROM time_entries te
+      LEFT JOIN projects p ON te.project_id = p.id
+      WHERE te.user_id = ${userId} AND te.status = 'active' AND te.end_time IS NULL
+      ORDER BY te.start_time DESC
       LIMIT 1
     `) as TimeEntry[]
 
@@ -228,18 +234,21 @@ export async function getTotalBreakTime(timeEntryId: number) {
 }
 
 // Get recent time entries for a user
-export async function getRecentTimeEntries(userId: number, limit = 5) {
+export async function getRecentTimeEntries(userId: number, limit: number = 10) {
   try {
     const timeEntries = (await sql`
       SELECT 
         te.id, 
         te.user_id, 
+        te.project_id,
         te.start_time, 
         te.end_time, 
         te.status, 
         te.observations,
         te.created_at, 
         te.updated_at,
+        p.name as project_name,
+        p.color as project_color,
         COALESCE(
           SUM(
             EXTRACT(EPOCH FROM (
@@ -250,8 +259,9 @@ export async function getRecentTimeEntries(userId: number, limit = 5) {
         )::float AS total_break_time
       FROM time_entries te
       LEFT JOIN breaks b ON te.id = b.time_entry_id
+      LEFT JOIN projects p ON te.project_id = p.id
       WHERE te.user_id = ${userId} AND te.status = 'completed'
-      GROUP BY te.id
+      GROUP BY te.id, p.name, p.color
       ORDER BY te.start_time DESC
       LIMIT ${limit}
     `) as (TimeEntry & { total_break_time: number })[]
@@ -283,12 +293,15 @@ export async function getTimeEntriesInRange(userId: number, startDate: Date, end
       SELECT 
         te.id, 
         te.user_id, 
+        te.project_id,
         te.start_time, 
         te.end_time, 
         te.status, 
         te.observations,
         te.created_at, 
         te.updated_at,
+        p.name as project_name,
+        p.color as project_color,
         COALESCE(
           SUM(
             EXTRACT(EPOCH FROM (
@@ -299,12 +312,13 @@ export async function getTimeEntriesInRange(userId: number, startDate: Date, end
         )::float AS total_break_time
       FROM time_entries te
       LEFT JOIN breaks b ON te.id = b.time_entry_id
+      LEFT JOIN projects p ON te.project_id = p.id
       WHERE 
         te.user_id = ${userId} AND 
         te.status = 'completed' AND
         te.start_time >= ${startDate} AND 
         te.start_time <= ${endDate}
-      GROUP BY te.id
+      GROUP BY te.id, p.name, p.color
       ORDER BY te.start_time DESC
     `) as (TimeEntry & { total_break_time: number })[]
 

@@ -40,8 +40,12 @@ import {
   FileText,
   LayoutDashboard,
   Search,
+  Timer,
+  TrendingUp,
+  BarChart as BarChartIcon,
 } from "lucide-react";
 import Image from "next/image";
+import { StatCard, InsightSmallCard } from "@/components/stat-card";
 import Link from "next/link";
 import { Fragment, useEffect, useState } from "react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
@@ -122,315 +126,318 @@ export function DataPage({ token }: DataPageProps) {
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50/50 dark:bg-background">
-      <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-md">
-        <div className="w-full px-4 md:px-8 flex h-16 items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="hover:opacity-90 transition-opacity">
-              <Image
-                src="/images/syncable-logo.png"
-                alt="Syncable Logo"
-                width={120}
-                height={100}
-                className="dark:invert"
-              />
+      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50 supports-[backdrop-filter]:bg-background/60 transition-all duration-300">
+        <div className="flex h-16 items-center justify-between py-4 px-6 md:px-20 max-w-[1600px] mx-auto">
+          <div className="flex items-center gap-10">
+            <Link href="/" className="flex items-center space-x-2 group shrink-0">
+              <div className="relative">
+                <Image
+                  src="/images/syncable-logo.png"
+                  className="dark:invert grayscale group-hover:grayscale-0 transition-all duration-500"
+                  alt="Syncable Logo"
+                  width={100}
+                  height={80}
+                />
+                <div className="absolute -inset-1 bg-primary/20 rounded-lg blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
             </Link>
-            <div className="hidden md:flex h-6 w-px bg-border mx-2" />
-            <div className="hidden md:flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <FileText className="h-4 w-4" />
-              Shared Report
+            <div className="hidden md:flex h-6 w-px bg-border/40" />
+            <div className="hidden md:flex items-center gap-2.5">
+              <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20 shadow-inner">
+                <FileText className="h-3.5 w-3.5 text-primary" />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">
+                / shared report analysis
+              </span>
             </div>
           </div>
           <Link href="/dashboard">
-            <Button variant="outline" size="sm" className="gap-2">
+            <Button variant="outline" size="sm" className="gap-2 rounded-xl font-bold shadow-lg shadow-primary/5 hover:bg-primary hover:text-primary-foreground transition-all h-9 px-4">
               <LayoutDashboard className="h-4 w-4" />
-              Go to Dashboard
+              <span className="hidden sm:inline">Go to Dashboard</span>
             </Button>
           </Link>
         </div>
       </header>
 
       <main className="flex-1 w-full px-4 md:px-8 py-8">
-        <div className="w-full space-y-8">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div className="space-y-1">
-              <h1 className="text-3xl font-bold tracking-tight">
-                {report.report_name ? `Report: ${report.report_name}` : "Time Tracking Report"}
+        <div className="w-full space-y-8 pb-12">
+          {/* Header Info Section */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-card/40 backdrop-blur-md p-8 rounded-3xl border-none shadow-xl relative overflow-hidden group">
+             <div className="absolute -left-10 -top-10 h-40 w-40 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors" />
+            <div className="relative z-10">
+              <h1 className="text-4xl font-black tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
+                {report.report_name ? report.report_name : "Time Tracking Report"}
               </h1>
-              {report.report_cpf_cnpj && (
-                <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">
-                  Document: {report.report_cpf_cnpj}
-                </p>
-              )}
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Calendar className="h-4 w-4" />
-                <span className="text-sm font-medium">
-                  {report.report_type.charAt(0).toUpperCase() + report.report_type.slice(1)} Period:
-                </span>
-                <span className="text-sm">
-                  {new Date(report.start_date).toLocaleDateString()} — {new Date(report.end_date).toLocaleDateString()}
-                </span>
+              <div className="flex flex-wrap items-center gap-4 mt-2">
+                {report.report_cpf_cnpj && (
+                   <span className="px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20 shadow-sm">
+                      ID: {report.report_cpf_cnpj}
+                   </span>
+                )}
+                <div className="flex items-center gap-2 text-muted-foreground font-medium opacity-80">
+                  <Calendar className="h-4 w-4 text-primary" />
+                  <span className="text-xs uppercase font-bold tracking-wider">
+                    {report.report_type} Period:
+                  </span>
+                  <span className="text-sm font-semibold text-foreground">
+                    {new Date(report.start_date).toLocaleDateString()} — {new Date(report.end_date).toLocaleDateString()}
+                  </span>
+                </div>
               </div>
             </div>
-            <Badge variant="secondary" className="w-fit h-7 px-3 text-xs font-semibold bg-primary/10 text-primary border-none">
-              Shared Externally
-            </Badge>
+            <div className="flex items-center gap-3 relative z-10">
+                <Badge variant="secondary" className="px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shadow-lg shadow-emerald-500/10">
+                  Verified Shared Report
+                </Badge>
+            </div>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-3">
+             <InsightSmallCard
+                title="Work Consistency"
+                value={Math.round((reportData.summary.daysWorked / 30) * 100) + "%"}
+                subValue="Last 30 days activity"
+                icon={<Timer className="h-4 w-4" />}
+                color="purple"
+             />
+             <InsightSmallCard
+                title="Daily Average"
+                value={formatDuration(reportData.summary.averageDailyWork)}
+                subValue="Time per active day"
+                icon={<BarChartIcon className="h-4 w-4" />}
+                color="green"
+             />
+             <InsightSmallCard
+                title="Active Days"
+                value={reportData.summary.daysWorked.toString()}
+                subValue="Sessions recorded"
+                icon={<Activity className="h-4 w-4" />}
+                color="blue"
+             />
           </div>
 
           {report.show_insights && <ReportInsights entries={reportData.entries} />}
 
           <div className="grid gap-6 md:grid-cols-4">
-            <Card className="hover:shadow-lg transition-all border-l-4 border-l-blue-500 bg-gradient-to-br from-white to-blue-50/50 dark:from-background dark:to-background overflow-hidden relative">
-              <div className="absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-blue-500/10 blur-2xl" />
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Total Work Time</CardTitle>
-                <div className="h-8 w-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                  <Clock className="h-4 w-4" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-foreground">
-                  {formatDuration(reportData.summary.totalNetWork)}
-                </div>
-                <p className="text-xs text-muted-foreground mt-2 font-medium opacity-80">
-                  Logged across {reportData.summary.daysWorked} day
-                  {reportData.summary.daysWorked !== 1 ? "s" : ""}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-all border-l-4 border-l-orange-500 bg-gradient-to-br from-white to-orange-50/50 dark:from-background dark:to-background overflow-hidden relative">
-              <div className="absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-orange-500/10 blur-2xl" />
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Total Break Time</CardTitle>
-                <div className="h-8 w-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400">
-                  <Coffee className="h-4 w-4" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-foreground">
-                  {formatDuration(reportData.summary.totalBreaks)}
-                </div>
-                <p className="text-xs text-muted-foreground mt-2 font-medium opacity-80">
-                  Recovery & rest periods
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-all border-l-4 border-l-purple-500 bg-gradient-to-br from-white to-purple-50/50 dark:from-background dark:to-background overflow-hidden relative">
-              <div className="absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-purple-500/10 blur-2xl" />
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Avg Daily Productivity</CardTitle>
-                <div className="h-8 w-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400">
-                  <Activity className="h-4 w-4" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-foreground">
-                  {formatDuration(reportData.summary.averageDailyWork)}
-                </div>
-                <p className="text-xs text-muted-foreground mt-2 font-medium opacity-80">
-                  Calculated per working day
-                </p>
-              </CardContent>
-            </Card>
-
+            <StatCard
+              title="Total Work Time"
+              value={formatDuration(reportData.summary.totalNetWork)}
+              icon={<Clock className="h-4 w-4" />}
+              description="net work duration"
+              color="blue"
+            />
+            <StatCard
+              title="Total Break Time"
+              value={formatDuration(reportData.summary.totalBreaks)}
+              icon={<Coffee className="h-4 w-4" />}
+              description="resting periods"
+              color="orange"
+            />
+            <StatCard
+              title="Elapsed Total"
+              value={formatDuration(reportData.summary.totalDuration)}
+              icon={<Activity className="h-4 w-4" />}
+              description="full period tracking"
+              color="purple"
+            />
             {reportData.summary.hourlyRate ? (
-              <Card className="hover:shadow-lg transition-all border-l-4 border-l-green-500 bg-gradient-to-br from-primary/[0.02] to-primary/[0.05] dark:from-background dark:to-background overflow-hidden relative group">
-                <div className="absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-primary/10 blur-2xl group-hover:bg-primary/20 transition-colors" />
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-primary uppercase tracking-wider">Total Payable</CardTitle>
-                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                    <Banknote className="h-4 w-4" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-extrabold text-primary">
-                    {formatCurrency(reportData.summary.totalPayable, reportData.summary.currency)}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2 font-medium opacity-80">
-                    Based on {formatCurrency(reportData.summary.hourlyRate, reportData.summary.currency)}/h
-                  </p>
-                </CardContent>
-              </Card>
-            ) : null}
+              <StatCard
+                title="Estimated Payable"
+                value={formatCurrency(reportData.summary.totalPayable, reportData.summary.currency)}
+                icon={<Banknote className="h-4 w-4" />}
+                description={`Rate: ${formatCurrency(reportData.summary.hourlyRate, reportData.summary.currency)}/h`}
+                color="primary"
+              />
+            ) : (
+              <StatCard
+                title="Payable Amount"
+                value="N/A"
+                icon={<Banknote className="h-4 w-4" />}
+                description="Rate not defined"
+                color="amber"
+              />
+            )}
           </div>
 
-          <Card className="shadow-sm overflow-hidden border-t-4 border-t-primary">
-            <CardHeader className="pb-2 bg-muted/30">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg">Detailed Activity Report</CardTitle>
-                  <CardDescription>Comprehensive breakdown of time entries and interactions</CardDescription>
+          <Card className="border-none shadow-xl relative overflow-hidden group bg-card/40 backdrop-blur-md">
+             <div className="absolute -right-10 -top-10 h-64 w-64 bg-primary/3 rounded-full blur-[100px] group-hover:bg-primary/5 transition-colors" />
+            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between relative z-10 pb-6 px-8 pt-8">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 shadow-inner">
+                  <FileText className="h-6 w-6 text-primary" />
                 </div>
-                <div className="hidden sm:flex h-10 w-10 rounded-full bg-primary/10 items-center justify-center text-primary">
-                  <FileText className="h-5 w-5" />
+                <div>
+                  <CardTitle className="text-2xl font-black tracking-tight">Detailed Activity Report</CardTitle>
+                  <CardDescription className="font-medium opacity-70">Comprehensive breakdown of time entries and interactions</CardDescription>
                 </div>
               </div>
             </CardHeader>
-            <div className="bg-muted/10 border-b p-2">
+            <CardContent className="relative z-10 px-8 pb-8">
               <Tabs defaultValue="table" className="w-full">
-                <div className="flex items-center justify-between px-2">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-xs font-semibold tracking-tight mr-2 uppercase text-muted-foreground">
-                      Display:
-                    </h3>
-                    <TabsList className="h-8">
-                      <TabsTrigger value="table" className="text-xs px-3 gap-2">
-                        <Clock className="h-3.5 w-3.5" />
-                        Data Table
+                <div className="flex items-center justify-between pb-6">
+                    <TabsList className="p-1 bg-muted/50 rounded-xl h-11">
+                      <TabsTrigger value="table" className="text-xs px-6 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all h-9 gap-2">
+                        <Clock className="h-4 w-4" />
+                        Table View
                       </TabsTrigger>
-                      <TabsTrigger value="chart" className="text-xs px-3 gap-2">
-                        <Activity className="h-3.5 w-3.5" />
+                      <TabsTrigger value="chart" className="text-xs px-6 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all h-9 gap-2">
+                        <BarChartIcon className="h-4 w-4" />
                         Visual Insights
                       </TabsTrigger>
                     </TabsList>
-                  </div>
                 </div>
 
-                <div className="p-0 sm:p-4 mt-2">
+                <div className="rounded-2xl border border-border/40 overflow-hidden bg-background/20 backdrop-blur-sm">
                   <TabsContent value="table" className="m-0 animate-in fade-in duration-500">
-                    <div className="rounded-md border bg-background overflow-hidden">
-                      <div className="overflow-x-auto">
-                        <Table>
-                          <TableHeader className="bg-muted/50">
-                            <TableRow>
-                              <TableHead className="font-bold">Date</TableHead>
-                              <TableHead className="font-bold">Session</TableHead>
-                              <TableHead className="font-bold">Gross Duration</TableHead>
-                              <TableHead className="font-bold text-orange-600 dark:text-orange-400">Breaks</TableHead>
-                              <TableHead className="font-bold text-blue-600 dark:text-blue-400">Net Work</TableHead>
-                              <TableHead className="w-[100px]"></TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {reportData.entries.map((entry: any) => {
-                              let obsContent;
-                              try {
-                                obsContent = entry.observations ? JSON.parse(entry.observations) : null;
-                              } catch (e) {
-                                obsContent = entry.observations ? [{ type: 'paragraph', children: [{ text: entry.observations }] }] : null;
-                              }
-                              
-                              const isExpanded = expandedRows[entry.id];
-                              
-                              return (
-                                <Fragment key={entry.id}>
-                                  <TableRow 
-                                    key={entry.id} 
-                                    className={cn(
-                                      "transition-colors",
-                                      isExpanded ? "bg-muted/20" : "hover:bg-muted/10",
-                                      obsContent && "cursor-pointer"
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader className="bg-muted/30">
+                          <TableRow className="hover:bg-transparent border-border/40">
+                            <TableHead className="font-bold uppercase text-[10px] tracking-widest text-muted-foreground p-4">Date</TableHead>
+                            <TableHead className="font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Session Period</TableHead>
+                            <TableHead className="font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Gross</TableHead>
+                            <TableHead className="font-bold uppercase text-[10px] tracking-widest text-muted-foreground text-orange-500">Breaks</TableHead>
+                            <TableHead className="font-bold uppercase text-[10px] tracking-widest text-muted-foreground text-blue-500">Net Work</TableHead>
+                            <TableHead className="w-[120px]"></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {reportData.entries.map((entry: any) => {
+                            let obsContent;
+                            try {
+                              obsContent = entry.observations ? JSON.parse(entry.observations) : null;
+                            } catch (e) {
+                              obsContent = entry.observations ? [{ type: 'paragraph', children: [{ text: entry.observations }] }] : null;
+                            }
+                            
+                            const isExpanded = expandedRows[entry.id];
+                            
+                            return (
+                              <Fragment key={entry.id}>
+                                <TableRow 
+                                  key={entry.id} 
+                                  className={cn(
+                                    "transition-colors border-border/40 hover:bg-primary/5 group/row",
+                                    isExpanded ? "bg-primary/5" : "bg-transparent",
+                                    obsContent && "cursor-pointer"
+                                  )}
+                                  onClick={() => obsContent && toggleRow(entry.id)}
+                                >
+                                  <TableCell className="p-4">
+                                     <span className="inline-flex items-center px-3 py-1 rounded-full bg-muted/50 text-[10px] font-bold text-foreground border border-border/40 whitespace-nowrap">
+                                        {entry.date}
+                                     </span>
+                                  </TableCell>
+                                  <TableCell className="whitespace-nowrap">
+                                    <div className="flex items-center gap-1.5 text-[10px] font-black uppercase text-muted-foreground">
+                                      <span className="px-2 py-0.5 rounded bg-background/50 border border-border/40 font-mono text-foreground">{entry.startTime}</span>
+                                      <span className="opacity-40">→</span>
+                                      <span className="px-2 py-0.5 rounded bg-background/50 border border-border/40 font-mono text-foreground">{entry.endTime || "Live"}</span>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="tabular-nums font-bold text-xs">{formatDuration(entry.duration)}</TableCell>
+                                  <TableCell className="tabular-nums font-bold text-xs text-orange-500/80">{formatDuration(entry.breaks)}</TableCell>
+                                  <TableCell className="tabular-nums font-black text-sm text-blue-500">{formatDuration(entry.netWork)}</TableCell>
+                                  <TableCell>
+                                    {obsContent && (
+                                      <div className="flex justify-center pr-4">
+                                        <Button 
+                                          variant="ghost"
+                                          size="sm" 
+                                          className={cn(
+                                            "h-8 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95",
+                                            isExpanded ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-primary/10 text-primary hover:bg-primary/20"
+                                          )}
+                                        >
+                                          {isExpanded ? "Hide" : "Details"}
+                                        </Button>
+                                      </div>
                                     )}
-                                    onClick={() => obsContent && toggleRow(entry.id)}
-                                  >
-                                    <TableCell className="font-medium whitespace-nowrap">{entry.date}</TableCell>
-                                    <TableCell className="whitespace-nowrap">
-                                      <div className="flex items-center gap-1.5 text-xs">
-                                        <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border font-mono">{entry.startTime}</span>
-                                        <span className="text-muted-foreground">→</span>
-                                        <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border font-mono">{entry.endTime || "In progress"}</span>
+                                  </TableCell>
+                                </TableRow>
+                                {isExpanded && obsContent && (
+                                  <TableRow className="border-none bg-primary/[0.02]">
+                                    <TableCell colSpan={6} className="p-0 border-none">
+                                      <div className="px-6 py-4 animate-in slide-in-from-top-2 duration-300">
+                                        <div className="rounded-2xl border border-primary/20 bg-background/40 backdrop-blur-sm p-6 shadow-xl border-t-2 border-t-primary/30">
+                                          <div className="flex items-center gap-3 mb-4 border-b border-border/40 pb-3">
+                                            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                                               <Search className="h-4 w-4 text-primary" />
+                                            </div>
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-primary">Session Observations</span>
+                                          </div>
+                                          <RichTextViewer content={obsContent} className="text-sm leading-relaxed font-medium" />
+                                        </div>
                                       </div>
                                     </TableCell>
-                                    <TableCell className="tabular-nums font-medium">{formatDuration(entry.duration)}</TableCell>
-                                    <TableCell className="tabular-nums text-orange-600/80 dark:text-orange-400/80">{formatDuration(entry.breaks)}</TableCell>
-                                    <TableCell className="tabular-nums font-bold text-blue-600 dark:text-blue-400">{formatDuration(entry.netWork)}</TableCell>
-                                    <TableCell>
-                                      {obsContent && (
-                                        <div className="flex justify-center">
-                                          <Button 
-                                            variant={isExpanded ? "secondary" : "default"}
-                                            size="sm" 
-                                            className={cn(
-                                              "h-8 text-xs px-3 shadow-md transition-all active:scale-95 font-medium",
-                                              !isExpanded && "bg-primary hover:bg-primary/90 hover:shadow-lg shadow-primary/20",
-                                              isExpanded && "bg-muted-foreground/10 text-muted-foreground hover:bg-muted-foreground/20"
-                                            )}
-                                          >
-                                            {isExpanded ? "Close" : "Description"}
-                                          </Button>
-                                        </div>
-                                      )}
-                                    </TableCell>
                                   </TableRow>
-                                  {isExpanded && obsContent && (
-                                    <TableRow className="bg-muted/10 border-t-0">
-                                      <TableCell colSpan={6} className="p-0">
-                                        <div className="px-6 py-4 animate-in slide-in-from-top-2 duration-200">
-                                          <div className="rounded-xl border bg-background p-4 shadow-sm">
-                                            <div className="flex items-center gap-2 mb-3 border-b pb-2">
-                                              <FileText className="h-4 w-4 text-primary" />
-                                              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Observations</span>
-                                            </div>
-                                            <RichTextViewer content={obsContent} className="text-sm leading-relaxed" />
-                                          </div>
-                                        </div>
-                                      </TableCell>
-                                    </TableRow>
-                                  )}
-                                </Fragment>
-                              );
-                            })}
-                          </TableBody>
-                        </Table>
-                      </div>
+                                )}
+                              </Fragment>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
                     </div>
                   </TabsContent>
-                  <TabsContent value="chart" className="m-0 h-[400px] animate-in fade-in duration-500">
-                    <div className="bg-background rounded-md border p-4 h-full">
-                      <ChartContainer
-                        config={{
-                          work: {
-                            label: "Work Hours",
-                            color: "hsl(var(--chart-1))",
-                          },
-                          break: {
-                            label: "Break Hours",
-                            color: "hsl(var(--chart-2))",
-                          },
-                        }}
-                        className="h-full w-full"
-                      >
-                        <BarChart accessibilityLayer data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                          <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.3} />
-                          <XAxis
-                            dataKey="date"
-                            tickLine={false}
-                            tickMargin={10}
-                            axisLine={false}
-                            fontSize={12}
-                          />
-                          <YAxis
-                            tickFormatter={(value) => `${value}h`}
-                            tickLine={false}
-                            tickMargin={10}
-                            axisLine={false}
-                            fontSize={12}
-                          />
-                          <ChartTooltip
-                            content={<ChartTooltipContent indicator="dashed" />}
-                          />
-                          <Bar
-                            dataKey="work"
-                            fill="var(--color-work)"
-                            radius={[4, 4, 0, 0]}
-                            stackId="stack"
-                            barSize={32}
-                          />
-                          <Bar
-                            dataKey="break"
-                            fill="var(--color-break)"
-                            radius={[4, 4, 0, 0]}
-                            stackId="stack"
-                            barSize={32}
-                          />
-                        </BarChart>
-                      </ChartContainer>
-                    </div>
+                  <TabsContent value="chart" className="m-0 h-[450px] animate-in fade-in duration-500 p-8">
+                    <ChartContainer
+                      config={{
+                        work: {
+                          label: "Work Hours",
+                          color: "hsl(var(--chart-1))",
+                        },
+                        break: {
+                          label: "Break Hours",
+                          color: "hsl(var(--chart-2))",
+                        },
+                      }}
+                      className="h-full w-full"
+                    >
+                      <BarChart accessibilityLayer data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                        <CartesianGrid vertical={false} strokeDasharray="3 3" strokeOpacity={0.1} />
+                        <XAxis
+                          dataKey="date"
+                          tickLine={false}
+                          tickMargin={15}
+                          axisLine={false}
+                          fontSize={10}
+                          fontWeight={700}
+                          tick={{ fill: 'currentColor', opacity: 0.5 }}
+                        />
+                        <YAxis
+                          tickFormatter={(value) => `${value}h`}
+                          tickLine={false}
+                          tickMargin={15}
+                          axisLine={false}
+                          fontSize={10}
+                          fontWeight={700}
+                          tick={{ fill: 'currentColor', opacity: 0.5 }}
+                        />
+                        <ChartTooltip
+                          cursor={{ fill: 'var(--primary)', opacity: 0.05 }}
+                          content={<ChartTooltipContent indicator="dashed" />}
+                        />
+                        <Bar
+                          dataKey="work"
+                          fill="var(--color-work)"
+                          radius={[6, 6, 0, 0]}
+                          stackId="stack"
+                          barSize={40}
+                        />
+                        <Bar
+                          dataKey="break"
+                          fill="var(--color-break)"
+                          radius={[6, 6, 0, 0]}
+                          stackId="stack"
+                          barSize={40}
+                        />
+                      </BarChart>
+                    </ChartContainer>
                   </TabsContent>
                 </div>
               </Tabs>
-            </div>
+            </CardContent>
           </Card>
         </div>
       </main>

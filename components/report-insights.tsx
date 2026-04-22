@@ -84,29 +84,43 @@ export function ReportInsights({ entries, insightsData }: ReportInsightsProps) {
   };
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {insights.map((insight, idx) => {
-        const styles = getStyles(insight.type);
+        const typeStyles: any = {
+           success: 'green',
+           warning: 'orange',
+           info: 'blue',
+           purple: 'purple'
+        };
+        const color = typeStyles[insight.type] || 'primary';
+        
         return (
-          <Card key={idx} className={`hover:shadow-lg transition-all border-l-4 ${styles.border} ${styles.bg} overflow-hidden relative group`}>
-            <div className={`absolute right-0 top-0 h-20 w-20 translate-x-8 -translate-y-8 rounded-full ${styles.blur} blur-2xl transition-transform group-hover:scale-125`} />
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground group-hover:text-primary transition-colors">
-                {insight.label}
-              </CardTitle>
-              <div className={`h-8 w-8 rounded-lg flex items-center justify-center transition-transform group-hover:rotate-12 ${styles.iconContainer}`}>
-                {getIcon(insight.label)}
+          <Card key={idx} className="border-none bg-card/40 backdrop-blur-md relative overflow-hidden group">
+            <div className={`absolute -right-2 -bottom-2 h-16 w-16 rounded-full blur-2xl opacity-20 transition-opacity group-hover:opacity-50 ${
+                color === 'primary' ? 'bg-primary' : 
+                color === 'blue' ? 'bg-blue-500' : 
+                color === 'green' ? 'bg-green-500' : 
+                color === 'orange' ? 'bg-orange-500' : 'bg-purple-500'
+            }`} />
+            <CardContent className="pt-6 relative z-10">
+              <div className="flex items-center gap-4">
+                <div className={`p-2.5 rounded-xl border transition-transform group-hover:scale-110 shadow-sm ${
+                    color === 'primary' ? 'bg-primary/20 text-primary border-primary/30' :
+                    color === 'blue' ? 'bg-blue-500/20 text-blue-500 border-blue-500/30' :
+                    color === 'green' ? 'bg-green-500/20 text-green-500 border-green-500/30' :
+                    color === 'orange' ? 'bg-orange-500/20 text-orange-500 border-orange-500/30' :
+                    'bg-purple-500/20 text-purple-500 border-purple-500/30'
+                }`}>
+                  {getIcon(insight.label)}
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{insight.label}</p>
+                  <h4 className="text-xl font-bold tracking-tight">{insight.value}</h4>
+                  {insight.subValue && (
+                     <p className="text-[9px] font-medium text-muted-foreground opacity-60 truncate max-w-[120px]">{insight.subValue}</p>
+                  )}
+                </div>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold tracking-tight text-foreground group-hover:translate-x-1 transition-transform">
-                {insight.value}
-              </div>
-              {insight.subValue && (
-                <p className="mt-2 text-[9px] font-semibold text-muted-foreground/70 uppercase tracking-tighter flex items-center gap-1 group-hover:opacity-100 transition-opacity">
-                  {insight.subValue}
-                </p>
-              )}
             </CardContent>
           </Card>
         );

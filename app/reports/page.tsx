@@ -1,6 +1,5 @@
 "use client";
 
-import { DashboardHeader } from "@/components/dashboard-header";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { DatePicker } from "@/components/date-picker";
 import { ReportChart } from "@/components/report-chart";
@@ -72,8 +71,11 @@ import {
   PieChart,
   Share,
   Table as TableIcon,
+  Timer,
+  TrendingUp,
   Trash2,
 } from "lucide-react";
+import { StatCard, InsightSmallCard } from "@/components/stat-card";
 import { useEffect, useRef, useState } from "react";
 import { getCurrentUser } from "../actions/auth";
 import {
@@ -86,6 +88,7 @@ import {
   type ReportData,
   type SharedReport,
 } from "../actions/reports";
+import { getProjects } from "../actions/projects";
 
 export default function ReportsPage() {
   const [userId, setUserId] = useState<number | null>(null);
@@ -97,6 +100,8 @@ export default function ReportsPage() {
   const [isPublic, setIsPublic] = useState(false);
   const [shareDuration, setShareDuration] = useState("7");
   const [showInsightsInShare, setShowInsightsInShare] = useState(true);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
+  const [projects, setProjects] = useState<any[]>([]);
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
@@ -121,7 +126,6 @@ export default function ReportsPage() {
   const [isFetchingGlobal, setIsFetchingGlobal] = useState(false);
 
   useEffect(() => {
-    // Get user ID using the server action
     const fetchUser = async () => {
       try {
         const user = await getCurrentUser();
@@ -136,6 +140,23 @@ export default function ReportsPage() {
 
     fetchUser();
   }, []);
+
+  useEffect(() => {
+    const loadProjects = async () => {
+      if (userId) {
+        try {
+          const result = await getProjects(userId);
+          if (result.success && result.data) {
+            setProjects(result.data);
+          }
+        } catch (error) {
+          console.error("Error loading projects:", error);
+        }
+      }
+    };
+
+    loadProjects();
+  }, [userId]);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -265,6 +286,7 @@ export default function ReportsPage() {
         startDate,
         endDate,
         activeTab,
+        selectedProjectId === "all" ? null : parseInt(selectedProjectId)
       );
       console.log("Report generation result:", result);
 
@@ -341,6 +363,7 @@ export default function ReportsPage() {
 
       const headers = [
         "Data",
+        "Projeto",
         "Início",
         "Fim",
         "Duração",
@@ -365,6 +388,7 @@ export default function ReportsPage() {
         }
         return [
           entry.date,
+          entry.project_name || "N/A",
           entry.startTime,
           entry.endTime || "Em execução",
           formatDuration(entry.duration),
@@ -463,7 +487,8 @@ export default function ReportsPage() {
         Number.parseInt(shareDuration),
         showInsightsInShare,
         reportName,
-        reportCpfCnpj
+        reportCpfCnpj,
+        selectedProjectId === "all" ? null : parseInt(selectedProjectId)
       );
 
       if (result.success) {
@@ -578,288 +603,298 @@ export default function ReportsPage() {
 
   return (
     <DashboardShell>
-      <DashboardHeader
-        heading={`${getGreeting()}${userData ? `, ${userData.name.split(" ")[0]}` : ""}!`}
-        text="Analyze your productivity and generate detailed time reports."
-      >
-        <div className="flex items-center space-x-2">
-          <Dialog
-            open={isGenerateModalOpen}
-            onOpenChange={(open) => {
-              setIsGenerateModalOpen(open);
-              if (!open) setReportCreatedSuccess(false);
-            }}
-          >
-            <DialogTrigger asChild>
-              <Button size="sm" className="bg-primary hover:bg-primary/90">
-                <FileText className="mr-2 h-4 w-4" />
-                Generate New Report
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>Generate Report</DialogTitle>
-                <DialogDescription>
-                  Choose the period and format for your time report.
-                </DialogDescription>
-              </DialogHeader>
+      <div className="flex flex-col gap-8 pb-8">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+              {getGreeting()}{userData ? `, ${userData.name.split(" ")[0]}` : ""}!
+            </h1>
+            <p className="text-muted-foreground mt-1 italic opacity-80">
+               Analyze your productivity and generate detailed time reports.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Dialog
+              open={isGenerateModalOpen}
+              onOpenChange={(open) => {
+                setIsGenerateModalOpen(open);
+                if (!open) setReportCreatedSuccess(false);
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button size="sm" className="shadow-lg hover:shadow-primary/20 transition-all font-semibold hover:scale-105 bg-primary">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Generate New Report
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>Generate Report</DialogTitle>
+                  <DialogDescription>
+                    Choose the period and format for your time report.
+                  </DialogDescription>
+                </DialogHeader>
 
-              {!reportCreatedSuccess ? (
-                <div className="grid gap-6 py-4">
-                  <div className="grid gap-3">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Shortcuts
-                    </Label>
-                    <div className="grid grid-cols-3 gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShortcuts("daily")}
-                        className={
-                          activeTab === "daily"
-                            ? "border-primary bg-primary/5"
-                            : ""
-                        }
-                      >
-                        Daily
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShortcuts("weekly")}
-                        className={
-                          activeTab === "weekly"
-                            ? "border-primary bg-primary/5"
-                            : ""
-                        }
-                      >
-                        Weekly
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShortcuts("monthly")}
-                        className={
-                          activeTab === "monthly"
-                            ? "border-primary bg-primary/5"
-                            : ""
-                        }
-                      >
-                        Monthly
-                      </Button>
+                {!reportCreatedSuccess ? (
+                  <div className="grid gap-6 py-4">
+                    <div className="grid gap-3">
+                      <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Shortcuts
+                      </Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShortcuts("daily")}
+                          className={
+                            activeTab === "daily"
+                              ? "border-primary bg-primary/5"
+                              : ""
+                          }
+                        >
+                          Daily
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShortcuts("weekly")}
+                          className={
+                            activeTab === "weekly"
+                              ? "border-primary bg-primary/5"
+                              : ""
+                          }
+                        >
+                          Weekly
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShortcuts("monthly")}
+                          className={
+                            activeTab === "monthly"
+                              ? "border-primary bg-primary/5"
+                              : ""
+                          }
+                        >
+                          Monthly
+                        </Button>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label>Start Date</Label>
+                        <DatePicker date={startDate} setDate={setStartDate} />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>End Date</Label>
+                        <DatePicker date={endDate} setDate={setEndDate} />
+                      </div>
+                    </div>
+
                     <div className="grid gap-2">
-                      <Label>Start Date</Label>
-                      <DatePicker date={startDate} setDate={setStartDate} />
+                      <Label>Report Type</Label>
+                      <Select
+                        defaultValue={reportType}
+                        onValueChange={setReportType}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="summary">Summary View</SelectItem>
+                          <SelectItem value="detailed">Detailed View</SelectItem>
+                          <SelectItem value="entries">Entries Only</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <div className="grid gap-2">
-                      <Label>End Date</Label>
-                      <DatePicker date={endDate} setDate={setEndDate} />
-                    </div>
-                  </div>
 
-                  <div className="grid gap-2">
-                    <Label>Report Type</Label>
-                    <Select
-                      defaultValue={reportType}
-                      onValueChange={setReportType}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="reportName">Name (Optional)</Label>
+                        <Input
+                          id="reportName"
+                          placeholder="Ex: John Doe"
+                          value={reportName}
+                          onChange={(e) => setReportName(e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="reportCpfCnpj">CPF/CNPJ (Optional)</Label>
+                        <Input
+                          id="reportCpfCnpj"
+                          placeholder="000.000.000-00"
+                          value={reportCpfCnpj}
+                          onChange={(e) => setReportCpfCnpj(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label>Filter by Project</Label>
+                      <Select
+                        value={selectedProjectId}
+                        onValueChange={setSelectedProjectId}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="All Projects" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">General (All Projects)</SelectItem>
+                          {projects.map((project) => (
+                            <SelectItem key={project.id} value={project.id.toString()}>
+                              <div className="flex items-center gap-2">
+                                <div className="h-2 w-2 rounded-full" style={{ backgroundColor: project.color }} />
+                                {project.name}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <Button
+                      onClick={handleGenerateReport}
+                      disabled={isGenerating}
+                      className="w-full mt-2"
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="summary">Summary View</SelectItem>
-                        <SelectItem value="detailed">Detailed View</SelectItem>
-                        <SelectItem value="entries">Entries Only</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      {isGenerating ? (
+                        <>
+                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                          Generating...
+                        </>
+                      ) : (
+                        "Generate Report"
+                      )}
+                    </Button>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="reportName">Name (Optional)</Label>
-                      <Input
-                        id="reportName"
-                        placeholder="Ex: John Doe"
-                        value={reportName}
-                        onChange={(e) => setReportName(e.target.value)}
-                      />
+                ) : (
+                  <div className="py-10 flex flex-col items-center text-center animate-in zoom-in-95 duration-300">
+                    <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 mb-4">
+                      <CheckCircle2 className="h-10 w-10" />
                     </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="reportCpfCnpj">CPF/CNPJ (Optional)</Label>
-                      <Input
-                        id="reportCpfCnpj"
-                        placeholder="000.000.000-00"
-                        value={reportCpfCnpj}
-                        onChange={(e) => setReportCpfCnpj(e.target.value)}
-                      />
-                    </div>
+                    <h3 className="text-xl font-bold mb-2">Report Created!</h3>
+                    <p className="text-muted-foreground mb-8">
+                      Your report for the selected period has been generated and
+                      is ready for review.
+                    </p>
+                    <Button onClick={scrollToReport} className="w-full">
+                      View Report Results
+                    </Button>
                   </div>
-
-                  <Button
-                    onClick={handleGenerateReport}
-                    disabled={isGenerating}
-                    className="w-full mt-2"
-                  >
-                    {isGenerating ? (
-                      <>
-                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        Generating...
-                      </>
-                    ) : (
-                      "Generate Report"
-                    )}
-                  </Button>
-                </div>
-              ) : (
-                <div className="py-10 flex flex-col items-center text-center animate-in zoom-in-95 duration-300">
-                  <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 mb-4">
-                    <CheckCircle2 className="h-10 w-10" />
-                  </div>
-                  <h3 className="text-xl font-bold mb-2">Report Created!</h3>
-                  <p className="text-muted-foreground mb-8">
-                    Your report for the selected period has been generated and
-                    is ready for review.
-                  </p>
-                  <Button onClick={scrollToReport} className="w-full">
-                    View Report Results
-                  </Button>
-                </div>
-              )}
-            </DialogContent>
-          </Dialog>
+                )}
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
-      </DashboardHeader>
-
-      <div className="space-y-8">
         {/* Global Summary Section */}
         {savedReports.length > 0 && globalReportData && (
           <div className="grid gap-6 animate-in fade-in slide-in-from-bottom-4">
-            <ReportInsights entries={globalReportData.entries} />
-            <div className="grid gap-4 md:grid-cols-3">
-              <Card className="hover:shadow-lg transition-all border-l-4 border-l-blue-500 bg-gradient-to-br from-white to-blue-50/50 dark:from-background dark:to-background overflow-hidden relative">
-                <div className="absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-blue-500/10 blur-2xl" />
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                    Total Worked
-                  </CardTitle>
-                  <div className="h-8 w-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                    <Clock className="h-4 w-4" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-foreground">
-                    {formatDuration(globalReportData.summary.totalNetWork)}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="hover:shadow-lg transition-all border-l-4 border-l-orange-500 bg-gradient-to-br from-white to-orange-50/50 dark:from-background dark:to-background overflow-hidden relative">
-                <div className="absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-orange-500/10 blur-2xl" />
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                    Total Breaks
-                  </CardTitle>
-                  <div className="h-8 w-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400">
-                    <Coffee className="h-4 w-4" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-foreground">
-                    {formatDuration(globalReportData.summary.totalBreaks)}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="hover:shadow-lg transition-all border-l-4 border-l-purple-500 bg-gradient-to-br from-white to-purple-50/50 dark:from-background dark:to-background overflow-hidden relative">
-                <div className="absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-purple-500/10 blur-2xl" />
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                    Total Combined
-                  </CardTitle>
-                  <div className="h-8 w-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400">
-                    <Activity className="h-4 w-4" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-foreground">
-                    {formatDuration(globalReportData.summary.totalDuration)}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {globalReportData.summary.hourlyRate ? (
-                <Card className="hover:shadow-lg transition-all border-l-4 border-l-primary bg-gradient-to-br from-primary/[0.02] to-primary/[0.05] dark:from-background dark:to-background overflow-hidden relative group">
-                  <div className="absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-primary/10 blur-2xl group-hover:bg-primary/20 transition-colors" />
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-primary uppercase tracking-wider">
-                      Total Payable
-                    </CardTitle>
-                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                      <Banknote className="h-4 w-4" />
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-extrabold text-primary">
-                      {formatCurrency(globalReportData.summary.totalPayable, globalReportData.summary.currency)}
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      Rate: {formatCurrency(globalReportData.summary.hourlyRate, globalReportData.summary.currency)}/h
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : null}
+            <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
+               <InsightSmallCard
+                  label="Peak Activity"
+                  value={globalReportData.summary.daysWorked.toString()}
+                  subValue="Active days recorded"
+                  icon={<TrendingUp className="h-4 w-4" />}
+                  color="blue"
+               />
+               <InsightSmallCard
+                  label="Work Consistency"
+                  value={Math.round((globalReportData.summary.daysWorked / 30) * 100) + "%"}
+                  subValue="Last 30 days activity"
+                  icon={<Timer className="h-4 w-4" />}
+                  color="purple"
+               />
+               <InsightSmallCard
+                  label="Daily Average"
+                  value={formatDuration(globalReportData.summary.averageDailyWork)}
+                  subValue="Time per active day"
+                  icon={<BarChart className="h-4 w-4" />}
+                  color="green"
+               />
             </div>
 
-            <Card className="shadow-sm overflow-hidden border-t-4 border-t-orange-500">
-              <CardHeader className="pb-2 bg-muted/30">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-base">
-                      Aggregated Activity
-                    </CardTitle>
-                    <CardDescription>
-                      Consolidated data from all generated reports
-                    </CardDescription>
+            <ReportInsights entries={globalReportData.entries} />
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+              <StatCard
+                title="Total Worked"
+                value={formatDuration(globalReportData.summary.totalNetWork)}
+                icon={<Clock className="h-4 w-4" />}
+                description="net work time"
+                color="blue"
+              />
+              <StatCard
+                title="Total Breaks"
+                value={formatDuration(globalReportData.summary.totalBreaks)}
+                icon={<Coffee className="h-4 w-4" />}
+                description="registered pauses"
+                color="orange"
+              />
+              <StatCard
+                title="Total Combined"
+                value={formatDuration(globalReportData.summary.totalDuration)}
+                icon={<Activity className="h-4 w-4" />}
+                description="total elapsed time"
+                color="purple"
+              />
+              {globalReportData.summary.hourlyRate ? (
+                <StatCard
+                  title="Total Payable"
+                  value={formatCurrency(globalReportData.summary.totalPayable, globalReportData.summary.currency)}
+                  icon={<Banknote className="h-4 w-4" />}
+                  description={`Rate: ${formatCurrency(globalReportData.summary.hourlyRate, globalReportData.summary.currency)}/h`}
+                  color="primary"
+                />
+              ) : (
+                <StatCard
+                  title="Total Payable"
+                  value="N/A"
+                  icon={<Banknote className="h-4 w-4" />}
+                  description="Rate not set"
+                  color="amber"
+                />
+              )}
+            </div>
+
+            <Card className="border-none shadow-xl relative overflow-hidden group bg-card/40 backdrop-blur-md">
+               <div className="absolute -right-10 -top-10 h-64 w-64 bg-orange-500/5 rounded-full blur-[100px] group-hover:bg-orange-500/10 transition-colors" />
+              <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between relative z-10 pb-6 px-8 pt-8">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-2xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20 shadow-inner">
+                    <BarChart className="h-6 w-6 text-orange-500" />
                   </div>
-                  <div className="h-8 w-8 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
-                    <BarChart className="h-4 w-4" />
+                  <div>
+                    <CardTitle className="text-2xl font-black tracking-tight">Aggregated Activity</CardTitle>
+                    <CardDescription className="font-medium opacity-70">Consolidated data from all generated reports</CardDescription>
                   </div>
                 </div>
               </CardHeader>
-              <div className="bg-muted/10 border-b p-2">
+              <CardContent className="relative z-10 px-8 pb-8">
                 <Tabs defaultValue="table" className="w-full">
-                  <div className="flex items-center justify-between px-2">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-xs font-semibold tracking-tight mr-2 uppercase text-muted-foreground">
-                        View Mode:
-                      </h3>
-                      <TabsList className="h-8">
-                        <TabsTrigger value="table" className="text-xs px-3">
-                          <TableIcon className="mr-1.5 h-3.5 w-3.5" />
-                          Table
+                  <div className="flex items-center justify-between pb-6">
+                      <TabsList className="p-1 bg-muted/50 rounded-xl h-11">
+                        <TabsTrigger value="table" className="text-xs px-6 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all h-9">
+                          <TableIcon className="mr-2 h-4 w-4" />
+                          Table View
                         </TabsTrigger>
-                        <TabsTrigger value="chart" className="text-xs px-3">
-                          <PieChart className="mr-1.5 h-3.5 w-3.5" />
-                          Chart
+                        <TabsTrigger value="chart" className="text-xs px-6 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all h-9">
+                          <PieChart className="mr-2 h-4 w-4" />
+                          Visual Chart
                         </TabsTrigger>
                       </TabsList>
-                    </div>
                   </div>
 
-                  <div className="p-4">
+                  <div className="rounded-2xl border border-border/40 overflow-hidden bg-background/20 backdrop-blur-sm">
                     <TabsContent value="table" className="m-0">
                       <ReportTable data={globalReportData.entries} />
                     </TabsContent>
-                    <TabsContent value="chart" className="m-0 h-[350px]">
+                    <TabsContent value="chart" className="m-0 h-[400px] p-6">
                       <ReportChart data={globalReportData.entries} />
                     </TabsContent>
                   </div>
                 </Tabs>
-              </div>
+              </CardContent>
             </Card>
           </div>
         )}
@@ -870,28 +905,31 @@ export default function ReportsPage() {
             ref={reportResultRef}
             className="grid gap-6 animate-in fade-in slide-in-from-bottom-4 scroll-mt-40"
           >
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 bg-white/50 dark:bg-background/50 p-6 rounded-2xl border backdrop-blur-sm shadow-sm">
-              <div>
-                <h2 className="text-3xl font-extrabold tracking-tight">
-                  {reportName ? `Report: ${reportName}` : "Report Results"}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 bg-card/40 backdrop-blur-md p-8 rounded-3xl border-none shadow-xl relative overflow-hidden group">
+               <div className="absolute -left-10 -top-10 h-40 w-40 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors" />
+              <div className="relative z-10">
+                <h2 className="text-4xl font-black tracking-tight bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
+                  {reportName ? reportName : "Report Results"}
                 </h2>
-                <p className="text-muted-foreground text-lg">
-                  {reportCpfCnpj ? (
-                    <span className="block mb-1 font-medium text-xs uppercase tracking-widest text-primary/70">
-                      Document: {reportCpfCnpj}
+                <div className="flex items-center gap-3 mt-1">
+                  {reportCpfCnpj && (
+                    <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest border border-primary/20">
+                      ID: {reportCpfCnpj}
                     </span>
-                  ) : null}
-                  Detailed productivity analysis for the selected period.
-                </p>
+                  )}
+                  <p className="text-muted-foreground font-medium opacity-70">
+                    Detailed productivity analysis for the selected period.
+                  </p>
+                </div>
               </div>
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3 relative z-10">
                 {/* Re-implement Share Dialog here */}
                 <Dialog>
                   <DialogTrigger asChild>
                     <Button
                       variant="default"
                       size="lg"
-                      className="bg-primary hover:bg-primary/90  shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95 px-6"
+                      className="bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95 px-8 font-bold text-base h-12"
                       onClick={() => {
                         setShareLink("");
                         setIsPublic(false);
@@ -909,7 +947,7 @@ export default function ReportsPage() {
                       </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
-                      <div className="flex items-center space-x-4 rounded-md border p-4 bg-muted/30">
+                      <div className="flex items-center space-x-4 rounded-xl border p-4 bg-muted/30">
                         <Share className="h-5 w-5 text-primary" />
                         <div className="flex-1 space-y-1">
                           <p className="text-sm font-semibold">Public Access</p>
@@ -1056,7 +1094,7 @@ export default function ReportsPage() {
                       variant="outline"
                       size="lg"
                       onClick={() => setIsDownloadModalOpen(true)}
-                      className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-900/10 dark:text-blue-400 dark:border-blue-900/30 transition-all hover:scale-105 active:scale-95 px-6 shadow-lg shadow-blue-500/10"
+                      className="bg-accent/50 text-accent-foreground border-border hover:bg-accent transition-all hover:scale-105 active:scale-95 px-8 font-bold text-base h-12 shadow-lg"
                     >
                       <Download className="mr-2 h-5 w-5" />
                       Export / Download
@@ -1120,109 +1158,70 @@ export default function ReportsPage() {
               </div>
             </div>
             
-            <div className="grid gap-4 md:grid-cols-4">
-              <Card className="relative overflow-hidden transition-all hover:shadow-md border-l-4 border-l-blue-500">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Total Worked
-                  </CardTitle>
-                  <Clock className="h-4 w-4 text-blue-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {formatDuration(reportData.summary.totalNetWork)}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="relative overflow-hidden transition-all hover:shadow-md border-l-4 border-l-orange-500">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Total Breaks
-                  </CardTitle>
-                  <Coffee className="h-4 w-4 text-orange-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {formatDuration(reportData.summary.totalBreaks)}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="relative overflow-hidden transition-all hover:shadow-md border-l-4 border-l-purple-500">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Combined Total
-                  </CardTitle>
-                  <Activity className="h-4 w-4 text-purple-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {formatDuration(reportData.summary.totalDuration)}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {reportData.summary.hourlyRate ? (
-                <Card className="relative overflow-hidden transition-all hover:shadow-md border-l-4 border-l-green-500 bg-primary/[0.03]">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-xs font-bold uppercase tracking-wider text-primary">
-                      Total Payable
-                    </CardTitle>
-                    <Banknote className="h-4 w-4 text-primary" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-primary">
-                      {formatCurrency(reportData.summary.totalPayable, reportData.summary.currency)}
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      Based on {formatCurrency(reportData.summary.hourlyRate, reportData.summary.currency)}/h
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card className="relative overflow-hidden transition-all hover:shadow-md bg-muted/30 grayscale opacity-80">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Total Payable
-                    </CardTitle>
-                    <Banknote className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-muted-foreground italic">
-                      N/A
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      Set rate in Settings
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+                <StatCard
+                  title="Total Worked"
+                  value={formatDuration(reportData.summary.totalNetWork)}
+                  icon={<Clock className="h-4 w-4" />}
+                  description="net work time"
+                  color="blue"
+                />
+                <StatCard
+                  title="Total Breaks"
+                  value={formatDuration(reportData.summary.totalBreaks)}
+                  icon={<Coffee className="h-4 w-4" />}
+                  description="registered pauses"
+                  color="orange"
+                />
+                <StatCard
+                  title="Combined Total"
+                  value={formatDuration(reportData.summary.totalDuration)}
+                  icon={<Activity className="h-4 w-4" />}
+                  description="total elapsed time"
+                  color="purple"
+                />
+                {reportData.summary.hourlyRate ? (
+                  <StatCard
+                    title="Total Payable"
+                    value={formatCurrency(reportData.summary.totalPayable, reportData.summary.currency)}
+                    icon={<Banknote className="h-4 w-4" />}
+                    description={`Based on ${formatCurrency(reportData.summary.hourlyRate, reportData.summary.currency)}/h`}
+                    color="primary"
+                  />
+                ) : (
+                  <StatCard
+                    title="Total Payable"
+                    value="N/A"
+                    icon={<Banknote className="h-4 w-4" />}
+                    description="Set rate in Settings"
+                    color="amber"
+                  />
+                )}
             </div>
 
             <ReportInsights entries={reportData.entries} />
-            <Card className="shadow-sm overflow-hidden border-t-4 border-t-primary">
-              <div className="bg-muted/30 border-b p-2">
+            <Card className="border-none shadow-sm relative overflow-hidden group bg-card/40 backdrop-blur-md">
+               <div className="absolute -right-10 -top-10 h-40 w-40 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors" />
+              <CardContent className="p-0">
                 <Tabs defaultValue="table" className="w-full">
-                  <div className="flex items-center justify-between px-2">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-semibold tracking-tight mr-2">
-                        Results View:
-                      </h3>
-                      <TabsList className="h-9">
-                        <TabsTrigger value="table" className="text-xs px-3">
-                          <TableIcon className="mr-1.5 h-3.5 w-3.5" />
-                          Data Table
+                  <div className="flex items-center justify-between px-6 py-4 border-b border-border/40">
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <TableIcon className="h-4 w-4 text-primary" />
+                        </div>
+                        <h3 className="font-bold tracking-tight">Report Data</h3>
+                      </div>
+                      <TabsList className="h-9 bg-muted/50">
+                        <TabsTrigger value="table" className="text-xs px-4">
+                          Table View
                         </TabsTrigger>
-                        <TabsTrigger value="chart" className="text-xs px-3">
-                          <PieChart className="mr-1.5 h-3.5 w-3.5" />
+                        <TabsTrigger value="chart" className="text-xs px-4">
                           Visual Chart
                         </TabsTrigger>
                       </TabsList>
-                    </div>
                   </div>
 
-                  <div className="p-4">
+                  <div className="p-6">
                     <TabsContent value="table" className="m-0">
                       <ReportTable data={reportData.entries} />
                     </TabsContent>
@@ -1231,69 +1230,73 @@ export default function ReportsPage() {
                     </TabsContent>
                   </div>
                 </Tabs>
-              </div>
+              </CardContent>
             </Card>
           </div>
         )}
 
         {/* Saved Reports Section */}
-        <Card className="shadow-sm">
-          <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 pb-4">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
-                <Share className="h-4 w-4" />
+        <Card className="border-none shadow-xl relative overflow-hidden bg-card/40 backdrop-blur-md group">
+           <div className="absolute -left-10 -bottom-10 h-64 w-64 bg-orange-500/5 rounded-full blur-[100px] opacity-40 group-hover:bg-orange-500/10 transition-colors" />
+          <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0 pb-6 relative z-10 px-8 pt-8">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-2xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20 shadow-inner">
+                <Share className="h-6 w-6 text-orange-500" />
               </div>
               <div>
-                <CardTitle>Saved Reports</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-2xl font-black tracking-tight">Saved Reports</CardTitle>
+                <CardDescription className="font-medium opacity-70">
                   Manage your shared and archived reports
                 </CardDescription>
               </div>
             </div>
-            {selectedReports.length > 0 && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="w-full sm:w-auto"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete Selected ({selectedReports.length})
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Reports?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete
-                      the selected {selectedReports.length} shared reports.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleBulkDelete}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              {selectedReports.length > 0 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="shadow-xl shadow-destructive/20 font-bold hover:scale-105 active:scale-95 transition-all"
                     >
-                      Delete Reports
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete Selected ({selectedReports.length})
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="rounded-3xl border-none shadow-2xl backdrop-blur-xl bg-background/80">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="text-2xl font-black">Delete Reports?</AlertDialogTitle>
+                      <AlertDialogDescription className="text-base font-medium opacity-80">
+                        This action cannot be undone. This will permanently delete
+                        the selected {selectedReports.length} shared reports and their public links.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="mt-6">
+                      <AlertDialogCancel className="rounded-xl font-bold border-none bg-muted/50 hover:bg-muted">Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleBulkDelete}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-bold shadow-lg shadow-destructive/20"
+                      >
+                        Confirm Deletion
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="px-8 pb-8 relative z-10">
             {isLoadingSavedReports ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <div className="flex flex-col items-center justify-center py-20 gap-4">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary border-t-2 border-t-transparent"></div>
+                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground animate-pulse">Loading reports...</p>
               </div>
             ) : savedReports.length > 0 ? (
-              <div className="rounded-md border m-4 overflow-hidden">
+              <div className="rounded-2xl border border-border/40 overflow-hidden bg-background/20 backdrop-blur-sm">
                 <Table>
-                  <TableHeader className="bg-muted/50">
-                    <TableRow>
-                      <TableHead className="w-[50px] text-center">
+                  <TableHeader className="bg-muted/30">
+                    <TableRow className="hover:bg-transparent border-border/40">
+                      <TableHead className="w-[60px] text-center">
                         <Checkbox
                           checked={
                             savedReports.length > 0 &&
@@ -1303,20 +1306,21 @@ export default function ReportsPage() {
                             handleSelectAll(!!checked)
                           }
                           aria-label="Select all"
+                          className="data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
                         />
                       </TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Date Range</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead>Expires</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead className="font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Report Type</TableHead>
+                      <TableHead className="font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Date Range</TableHead>
+                      <TableHead className="font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Created</TableHead>
+                      <TableHead className="font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Status / Expiry</TableHead>
+                      <TableHead className="text-right font-bold uppercase text-[10px] tracking-widest text-muted-foreground">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {savedReports.map((report) => (
                       <TableRow
                         key={report.id}
-                        className="hover:bg-muted/50 transition-colors"
+                        className="hover:bg-orange-500/5 transition-colors border-border/40 group/row"
                       >
                         <TableCell className="text-center">
                           <Checkbox
@@ -1325,53 +1329,56 @@ export default function ReportsPage() {
                               handleToggleSelect(report.id)
                             }
                             aria-label={`Select report ${report.id}`}
+                            className="data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
                           />
                         </TableCell>
-                        <TableCell className="capitalize font-medium">
-                          <div className="flex items-center gap-2">
-                            <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                        <TableCell className="capitalize font-bold text-foreground">
+                          <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-lg bg-muted/50 flex items-center justify-center group-hover/row:bg-orange-500/10 transition-colors">
+                               <FileText className="h-4 w-4 text-muted-foreground group-hover/row:text-orange-500 transition-colors" />
+                            </div>
                             {report.report_type}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <span className="inline-flex items-center px-2 py-1 rounded-md bg-muted text-xs font-medium">
-                            {formatDateForDisplay(new Date(report.start_date))}{" "}
-                            - {formatDateForDisplay(new Date(report.end_date))}
+                          <span className="inline-flex items-center px-3 py-1 rounded-full bg-muted/50 text-[10px] font-bold text-foreground border border-border/40">
+                             {formatDateForDisplay(new Date(report.start_date))} - {formatDateForDisplay(new Date(report.end_date))}
                           </span>
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
+                        <TableCell className="text-muted-foreground text-xs font-medium">
                           {formatDateForDisplay(new Date(report.created_at))}
                         </TableCell>
                         <TableCell>
                           {report.expires_at ? (
-                            <span className="text-xs text-orange-600 dark:text-orange-400 font-medium bg-orange-100 dark:bg-orange-900/20 px-2 py-1 rounded-full">
-                              {formatDateForDisplay(
-                                new Date(report.expires_at),
-                              )}
-                            </span>
+                             <div className="flex flex-col gap-1">
+                                <span className="text-[10px] font-black uppercase text-orange-500/80 tracking-tighter">Expires on</span>
+                                <span className="text-xs font-bold text-foreground">
+                                  {formatDateForDisplay(new Date(report.expires_at))}
+                                </span>
+                             </div>
                           ) : (
-                            <span className="text-xs text-green-600 dark:text-green-400 font-medium bg-green-100 dark:bg-green-900/20 px-2 py-1 rounded-full">
-                              Never
+                            <span className="text-[10px] font-black uppercase text-green-500 bg-green-500/10 px-2 py-0.5 rounded-md border border-green-500/20">
+                              Permanent
                             </span>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
+                          <div className="flex items-center justify-end gap-2">
                             <Button
                               variant="ghost"
                               size="icon"
                               onClick={() => handleCopyLink(report.share_token)}
                               title="Copy Link"
-                              className="h-8 w-8"
+                              className="h-9 w-9 rounded-xl hover:bg-orange-500/10 hover:text-orange-500 transition-all active:scale-90"
                             >
-                              <Share className="h-4 w-4" />
+                              <Copy className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
                               asChild
                               title="View Report"
-                              className="h-8 w-8"
+                              className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-all active:scale-90"
                             >
                               <a
                                 href={`/shared-report/${report.share_token}`}
@@ -1387,30 +1394,27 @@ export default function ReportsPage() {
                                   variant="ghost"
                                   size="icon"
                                   title="Delete Report"
-                                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                  className="h-9 w-9 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all active:scale-90"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </AlertDialogTrigger>
-                              <AlertDialogContent>
+                              <AlertDialogContent className="rounded-3xl border-none shadow-2xl backdrop-blur-xl bg-background/80">
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>
-                                    Are you sure?
-                                  </AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This will permanently delete this shared
-                                    report link.
+                                  <AlertDialogTitle className="text-2xl font-black">Final Delete?</AlertDialogTitle>
+                                  <AlertDialogDescription className="font-medium opacity-80">
+                                    This will permanently remove the shared access link for this report.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogFooter className="mt-6">
+                                  <AlertDialogCancel className="rounded-xl font-bold">Cancel</AlertDialogCancel>
                                   <AlertDialogAction
                                     onClick={() =>
                                       handleDeleteReport(report.id)
                                     }
-                                    className="bg-destructive hover:bg-destructive/90"
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-bold"
                                   >
-                                    Delete
+                                    Delete Link
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
@@ -1423,17 +1427,20 @@ export default function ReportsPage() {
                 </Table>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
-                <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
-                  <Share className="h-6 w-6 opacity-40" />
+              <div className="flex flex-col items-center justify-center py-24 text-center rounded-2xl border-2 border-dashed border-border/40 bg-muted/5">
+                <div className="h-20 w-20 rounded-3xl bg-muted/20 flex items-center justify-center mb-6 shadow-inner">
+                  <Share className="h-10 w-10 opacity-20" />
                 </div>
-                <h3 className="font-medium text-foreground mb-1">
-                  No Saved Reports
+                <h3 className="text-xl font-black text-foreground mb-2">
+                  No Saved Reports Yet
                 </h3>
-                <p className="text-sm max-w-sm mx-auto mb-4">
-                  Generate a report above and use the "Share" feature to create
-                  a saved link here.
+                <p className="text-sm font-medium text-muted-foreground max-w-sm mx-auto mb-8 px-4 opacity-70">
+                  Generate a report above and use the "Share & Publish" feature to create
+                  persistent shareable links here.
                 </p>
+                <Button variant="outline" className="rounded-xl font-bold" onClick={() => setIsGenerateModalOpen(true)}>
+                    Create your first report
+                </Button>
               </div>
             )}
           </CardContent>

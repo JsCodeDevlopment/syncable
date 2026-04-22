@@ -15,8 +15,8 @@ export function DashboardShell({
 }: DashboardShellProps) {
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-40 border-b bg-background">
-        <div className="flex items-center justify-between py-4 px-20">
+      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border/50 supports-[backdrop-filter]:bg-background/60 transition-all duration-300">
+        <div className="flex h-16 items-center justify-between py-4 px-6 md:px-20 max-w-[1600px] mx-auto">
           <MainNav />
           <UserNav />
         </div>

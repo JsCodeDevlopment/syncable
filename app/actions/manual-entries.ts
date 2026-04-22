@@ -1,8 +1,8 @@
 "use server"
 
-import { sql } from "@/lib/db"
-import { revalidatePath } from "next/cache"
-import type { TimeEntry, Break } from "./time-entries"
+import { sql } from "@/lib/db";
+import { revalidatePath } from "next/cache";
+import type { Break, TimeEntry } from "./time-entries";
 
 // Create a manual time entry
 export async function createManualTimeEntry(
@@ -11,6 +11,7 @@ export async function createManualTimeEntry(
   endTime: Date | null,
   breakDetails: { startTime: Date; endTime: Date | null }[],
   observations?: string,
+  projectId?: number | null,
 ) {
   try {
     // Start a transaction
@@ -18,15 +19,16 @@ export async function createManualTimeEntry(
 
     // Insert the time entry
     const timeEntryResult = await sql`
-      INSERT INTO time_entries (user_id, start_time, end_time, status, observations)
+      INSERT INTO time_entries (user_id, project_id, start_time, end_time, status, observations)
       VALUES (
         ${userId}, 
+        ${projectId || null},
         ${startTime}, 
         ${endTime}, 
         ${endTime ? "completed" : "active"},
         ${observations || null}
       )
-      RETURNING id, user_id, start_time, end_time, status, observations, created_at, updated_at
+      RETURNING id, user_id, project_id, start_time, end_time, status, observations, created_at, updated_at
     `
 
     const timeEntry = timeEntryResult[0] as TimeEntry
@@ -59,7 +61,14 @@ export async function createManualTimeEntry(
 }
 
 // Update an existing time entry
-export async function updateTimeEntry(timeEntryId: number, startTime: Date, endTime: Date | null, userId: number, observations?: string) {
+export async function updateTimeEntry(
+  timeEntryId: number,
+  startTime: Date,
+  endTime: Date | null,
+  userId: number,
+  observations?: string,
+  projectId?: number | null,
+) {
   try {
     // Verify the time entry belongs to the user
     const verifyResult = await sql`
@@ -76,11 +85,12 @@ export async function updateTimeEntry(timeEntryId: number, startTime: Date, endT
       SET 
         start_time = ${startTime}, 
         end_time = ${endTime},
+        project_id = ${projectId !== undefined ? (projectId || null) : sql`project_id`},
         status = ${endTime ? "completed" : "active"},
         observations = ${observations !== undefined ? (observations || null) : sql`observations`},
         updated_at = NOW()
       WHERE id = ${timeEntryId}
-      RETURNING id, user_id, start_time, end_time, status, observations, created_at, updated_at
+      RETURNING id, user_id, project_id, start_time, end_time, status, observations, created_at, updated_at
     `
 
     revalidatePath("/dashboard")

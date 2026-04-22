@@ -15,6 +15,9 @@ export type ReportData = {
     breaks: number;
     netWork: number;
     observations?: string | null;
+    project_id?: number | null;
+    project_name?: string | null;
+    project_color?: string | null;
   }[];
   summary: {
     totalDuration: number;
@@ -39,6 +42,7 @@ export type SharedReport = {
   show_insights: boolean;
   report_name?: string | null;
   report_cpf_cnpj?: string | null;
+  project_id?: number | null;
   created_at: Date;
   updated_at: Date;
 };
@@ -48,7 +52,8 @@ export async function generateReport(
   userId: number,
   startDate: Date,
   endDate: Date,
-  reportType: string
+  reportType: string,
+  projectId?: number | null
 ): Promise<{ success: boolean; data?: ReportData; error?: string }> {
   try {
     console.log(
@@ -78,6 +83,11 @@ export async function generateReport(
         te.start_time, 
         te.end_time,
         te.observations,
+        te.project_id,
+        p.name as project_name,
+        p.color as project_color,
+        COALESCE(p.hourly_rate, us.hourly_rate) as effective_rate,
+        COALESCE(p.currency, us.currency) as effective_currency,
         EXTRACT(EPOCH FROM (COALESCE(te.end_time, CURRENT_TIMESTAMP) - te.start_time)) * 1000 AS duration,
         COALESCE(
           (SELECT SUM(EXTRACT(EPOCH FROM (COALESCE(b.end_time, CURRENT_TIMESTAMP) - b.start_time)) * 1000)
@@ -86,11 +96,14 @@ export async function generateReport(
           0
         ) AS break_time
       FROM time_entries te
+      LEFT JOIN projects p ON te.project_id = p.id
+      JOIN user_settings us ON te.user_id = us.user_id
       WHERE 
         te.user_id = ${userId} AND 
         te.status = 'completed' AND
         te.start_time >= ${startDate} AND 
         te.start_time <= ${adjustedEndDate}
+        ${projectId ? sql`AND te.project_id = ${projectId}` : sql``}
       ORDER BY te.start_time DESC
     `) as any;
 
@@ -113,6 +126,11 @@ export async function generateReport(
         breaks,
         netWork,
         observations: entry.observations,
+        project_id: entry.project_id,
+        project_name: entry.project_name,
+        project_color: entry.project_color,
+        effective_rate: entry.effective_rate ? Number(entry.effective_rate) : null,
+        effective_currency: entry.effective_currency || "BRL",
       };
     });
 
@@ -126,19 +144,27 @@ export async function generateReport(
     const daysWorked = new Set(entries.map((entry: { date: string }) => entry.date)).size;
     const averageDailyWork = daysWorked > 0 ? totalNetWork / daysWorked : 0;
 
-    // Get user settings for billing
-    const settingsResult = await getUserSettings(userId);
+    // Calculate total payable
+    // We sum the payable for each entry individually because they might have different rates
     let totalPayable = 0;
-    let hourlyRate = null;
-    let currency = "BRL";
 
-    if (settingsResult.success && settingsResult.data) {
-      hourlyRate = settingsResult.data.hourly_rate;
-      currency = settingsResult.data.currency;
-      
-      if (hourlyRate) {
-        // Calculate total payable: (net work in hours) * hourly rate
-        totalPayable = (totalNetWork / 3600000) * hourlyRate;
+    entries.forEach((entry: any) => {
+      if (entry.effective_rate) {
+        totalPayable += (entry.netWork / 3600000) * entry.effective_rate;
+      }
+    });
+
+    // Determine the primary rate and currency for the summary
+    const settingsResult = await getUserSettings(userId);
+    let summaryHourlyRate = settingsResult.data?.hourly_rate || null;
+    let summaryCurrency = settingsResult.data?.currency || "BRL";
+
+    if (projectId) {
+      const projectResult = (await sql`SELECT hourly_rate, currency FROM projects WHERE id = ${projectId} AND user_id = ${userId}`) as any[];
+      if (projectResult.length > 0) {
+        // If it's a project report, the project's rate and currency are the primary ones
+        summaryHourlyRate = projectResult[0].hourly_rate !== null ? Number(projectResult[0].hourly_rate) : summaryHourlyRate;
+        summaryCurrency = projectResult[0].currency || summaryCurrency;
       }
     }
 
@@ -153,8 +179,8 @@ export async function generateReport(
           averageDailyWork,
           daysWorked,
           totalPayable,
-          hourlyRate,
-          currency,
+          hourlyRate: summaryHourlyRate,
+          currency: summaryCurrency,
         },
       },
     };
@@ -176,7 +202,8 @@ export async function createSharedReport(
   expiresInDays: number,
   showInsights: boolean = true,
   reportName: string = "",
-  reportCpfCnpj: string = ""
+  reportCpfCnpj: string = "",
+  projectId: number | null = null
 ): Promise<{ success: boolean; data?: SharedReport; error?: string }> {
   try {
     console.log(
@@ -226,6 +253,7 @@ export async function createSharedReport(
           show_insights BOOLEAN DEFAULT TRUE,
           report_name TEXT,
           report_cpf_cnpj TEXT,
+          project_id INTEGER,
           created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
           updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
         );
@@ -234,11 +262,12 @@ export async function createSharedReport(
 
     // Attempt to add new columns if they don't exist (for existing tables)
     try {
-        await sql`ALTER TABLE shared_reports ADD COLUMN IF NOT EXISTS show_insights BOOLEAN DEFAULT TRUE`;
-        await sql`ALTER TABLE shared_reports ADD COLUMN IF NOT EXISTS report_name TEXT`;
-        await sql`ALTER TABLE shared_reports ADD COLUMN IF NOT EXISTS report_cpf_cnpj TEXT`;
+      await sql`ALTER TABLE shared_reports ADD COLUMN IF NOT EXISTS show_insights BOOLEAN DEFAULT TRUE`;
+      await sql`ALTER TABLE shared_reports ADD COLUMN IF NOT EXISTS report_name TEXT`;
+      await sql`ALTER TABLE shared_reports ADD COLUMN IF NOT EXISTS report_cpf_cnpj TEXT`;
+      await sql`ALTER TABLE shared_reports ADD COLUMN IF NOT EXISTS project_id INTEGER`;
     } catch (e) {
-        console.log("Columns might already exist or table alteration failed:", e);
+      console.log("Columns might already exist or table alteration failed:", e);
     }
 
     console.log("Schema check/update completed");
@@ -253,7 +282,8 @@ export async function createSharedReport(
         expires_at,
         show_insights,
         report_name,
-        report_cpf_cnpj
+        report_cpf_cnpj,
+        project_id
       )
       VALUES (
         ${userId}, 
@@ -264,7 +294,8 @@ export async function createSharedReport(
         ${expiresAt},
         ${showInsights},
         ${reportName},
-        ${reportCpfCnpj}
+        ${reportCpfCnpj},
+        ${projectId}
       )
       RETURNING *
     `) as any[];
@@ -333,7 +364,8 @@ export async function getSharedReport(
       report.user_id,
       new Date(report.start_date),
       new Date(report.end_date),
-      report.report_type
+      report.report_type,
+      report.project_id
     );
 
     if (!reportDataResult.success) {
@@ -505,6 +537,11 @@ export async function getGlobalReportAggregation(
         te.start_time, 
         te.end_time,
         te.observations,
+        te.project_id,
+        p.name as project_name,
+        p.color as project_color,
+        COALESCE(p.hourly_rate, us.hourly_rate) as effective_rate,
+        COALESCE(p.currency, us.currency) as effective_currency,
         EXTRACT(EPOCH FROM (COALESCE(te.end_time, CURRENT_TIMESTAMP) - te.start_time)) * 1000 AS duration,
         COALESCE(
           (SELECT SUM(EXTRACT(EPOCH FROM (COALESCE(b.end_time, CURRENT_TIMESTAMP) - b.start_time)) * 1000)
@@ -513,6 +550,8 @@ export async function getGlobalReportAggregation(
           0
         ) AS break_time
       FROM time_entries te
+      LEFT JOIN projects p ON te.project_id = p.id
+      JOIN user_settings us ON te.user_id = us.user_id
       WHERE 
         te.user_id = ${userId} AND 
         te.status = 'completed' AND
@@ -542,6 +581,11 @@ export async function getGlobalReportAggregation(
         breaks,
         netWork,
         observations: entry.observations,
+        project_id: entry.project_id,
+        project_name: entry.project_name,
+        project_color: entry.project_color,
+        effective_rate: entry.effective_rate ? Number(entry.effective_rate) : null,
+        effective_currency: entry.effective_currency || "BRL",
       };
     });
 
@@ -553,20 +597,18 @@ export async function getGlobalReportAggregation(
     const daysWorked = daysWorkedSet.size;
     const averageDailyWork = daysWorked > 0 ? totalNetWork / daysWorked : 0;
 
-    // Get user settings for billing (Global aggregation)
-    const settingsResult = await getUserSettings(userId);
+    // Calculate total payable
     let totalPayable = 0;
-    let hourlyRate = null;
-    let currency = "BRL";
-
-    if (settingsResult.success && settingsResult.data) {
-      hourlyRate = settingsResult.data.hourly_rate;
-      currency = settingsResult.data.currency;
-      
-      if (hourlyRate) {
-        totalPayable = (totalNetWork / 3600000) * hourlyRate;
+    entries.forEach((entry: any) => {
+      if (entry.effective_rate) {
+        totalPayable += (entry.netWork / 3600000) * entry.effective_rate;
       }
-    }
+    });
+
+    // Get user settings for default fallback
+    const settingsResult = await getUserSettings(userId);
+    let summaryHourlyRate = settingsResult.data?.hourly_rate || null;
+    let summaryCurrency = settingsResult.data?.currency || "BRL";
 
     return {
       success: true,
@@ -579,8 +621,8 @@ export async function getGlobalReportAggregation(
           averageDailyWork,
           daysWorked,
           totalPayable,
-          hourlyRate,
-          currency,
+          hourlyRate: summaryHourlyRate,
+          currency: summaryCurrency,
         },
       },
     };

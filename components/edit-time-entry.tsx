@@ -19,9 +19,17 @@ import { Separator } from "@/components/ui/separator"
 import { toast } from "@/components/ui/use-toast"
 import { createBrazilianDate, formatDateForInput, formatTimeForInput } from "@/lib/timezone"
 import { Edit, PlusCircle, Trash2, FileText } from "lucide-react"
-import { useState } from "react"
 import { RichTextEditor } from "@/components/rich-text-editor"
 import { Descendant } from "slate"
+import { getProjects, type Project } from "@/app/actions/projects"
+import { useEffect, useState } from "react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface EditTimeEntryProps {
   userId: number
@@ -29,6 +37,7 @@ interface EditTimeEntryProps {
   initialStartTime: Date
   initialEndTime: Date | null
   initialObservations?: string | null
+  initialProjectId?: number | null
   breaks: {
     id: number
     startTime: Date
@@ -43,6 +52,7 @@ export function EditTimeEntry({
   initialStartTime,
   initialEndTime,
   initialObservations,
+  initialProjectId,
   breaks,
   onSuccess,
 }: EditTimeEntryProps) {
@@ -67,6 +77,8 @@ export function EditTimeEntry({
   }
 
   const [observations, setObservations] = useState<Descendant[]>(getInitialObservations())
+  const [projects, setProjects] = useState<Project[]>([])
+  const [selectedProjectId, setSelectedProjectId] = useState<string>(initialProjectId?.toString() || "none")
 
   const [breakItems, setBreakItems] = useState(
     breaks.map((breakItem) => ({
@@ -79,6 +91,20 @@ export function EditTimeEntry({
   )
 
   const [nextBreakId, setNextBreakId] = useState(-1) // Using negative IDs for new breaks
+
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        const result = await getProjects(userId)
+        if (result.success && result.data) {
+          setProjects(result.data)
+        }
+      } catch (error) {
+        console.error("Error loading projects:", error)
+      }
+    }
+    if (open) loadProjects()
+  }, [userId, open])
 
   const addBreak = () => {
     setBreakItems([
@@ -138,7 +164,8 @@ export function EditTimeEntry({
         startDateTime, 
         endDateTime, 
         userId,
-        JSON.stringify(observations)
+        JSON.stringify(observations),
+        selectedProjectId === "none" ? null : parseInt(selectedProjectId)
       )
 
       if (!updateResult.success) {
@@ -215,6 +242,25 @@ export function EditTimeEntry({
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-1 gap-2">
+              <Label htmlFor="edit-project-select">Project (Optional)</Label>
+              <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                <SelectTrigger id="edit-project-select">
+                  <SelectValue placeholder="No Project" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Project</SelectItem>
+                  {projects.map((project) => (
+                    <SelectItem key={project.id} value={project.id.toString()}>
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full" style={{ backgroundColor: project.color }} />
+                        {project.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid grid-cols-1 gap-2">
               <Label htmlFor="date">Date</Label>
               <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />

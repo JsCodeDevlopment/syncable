@@ -1,6 +1,6 @@
 # Syncable - Gestão de Ponto & Payroll Dashboard
 
-![](https://img.shields.io/badge/Versão-1.4.0-black?style=for-the-badge)
+![](https://img.shields.io/badge/Versão-1.5.0-black?style=for-the-badge)
 
 Plataforma moderna, intuitiva e responsiva desenvolvida para profissionais e empresas que buscam simplicidade e precisão no controle de jornada. O **Syncable** elimina a burocracia do registro de ponto, oferecendo uma experiência focada no que realmente importa: seu tempo.
 
@@ -30,8 +30,9 @@ O Syncable foi desenhado para ser seu aliado no dia a dia. Confira como a plataf
 ### 3. 📄 Relatórios Profissionais em Segundos
 
 - **Geração Intuitiva:** Esqueça formulários complexos. Use nosso fluxo guiado para criar relatórios diários, semanais ou mensais.
+- **Relatórios por Projeto:** Filtre suas jornadas por um cliente ou projeto específico para uma visão detalhada de ganhos e horas.
 - **Personalização Completa:** Escolha incluir seu **Nome** e **CPF/CNPJ** para relatórios prontos para contabilidade.
-- **Exportação Master:** Gere arquivos **CSV/Excel** formatados perfeitamente para abrir em qualquer software de planilha.
+- **Exportação Master:** Gere arquivos **CSV/Excel** que agora incluem a coluna de **Projeto**, formatados perfeitamente para qualquer software de planilha.
 
 ### 4. 🖋️ Anotações e Detalhamento
 
@@ -47,10 +48,11 @@ O Syncable foi desenhado para ser seu aliado no dia a dia. Confira como a plataf
 
 ### 6. 💰 Faturamento e Cálculo de Valores
 
-- **Taxa Horária Personalizada:** Configure seu valor por hora trabalhada e deixe a plataforma fazer a matemática por você.
-- **Cálculo Automático (Payroll):** Saiba exatamente quanto receber ao final de cada período baseado no trabalho líquido e pausas.
-- **Suporte Multi-moeda:** Defina sua moeda de preferência entre **BRL, USD, EUR ou GBP** com formatação regional automática.
-- **Cards Financeiros:** Visualize o total a receber em destaque nos seus dashboards e relatórios compartilhados.
+- **Faturamento por Projeto:** Configure valores por hora e moedas diferentes para cada cliente. O sistema faz a matemática de forma independente.
+- **Taxa Global de Perfil:** Defina sua taxa padrão que servirá como fallback automático para projetos sem valores configurados.
+- **Cálculo Automático (Payroll):** Saiba exatamente quanto receber ao final de cada período baseado no trabalho líquido e pausas, respeitando taxas específicas.
+- **Suporte Multi-moeda:** Defina moedas entre **BRL, USD, EUR ou GBP** com formatação regional automática por projeto.
+- **Cards Financeiros:** Visualize o total a receber em destaque nos seus dashboards e relatórios, sempre respeitando a moeda do projeto filtrado.
 
 ---
 

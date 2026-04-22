@@ -8,6 +8,7 @@ export type DashboardInsight = {
   mostBreaksDay: { date: string; duration: number } | null;
   avgDailyWork: number;
   totalDaysWorked: number;
+  weeklyChartData: { day: string; hours: number }[];
 };
 
 export async function getDashboardInsights(userId: number) {
@@ -31,7 +32,7 @@ export async function getDashboardInsights(userId: number) {
       FROM time_entries te
       WHERE 
         te.user_id = ${userId} AND 
-        te.status = 'completed' AND
+        te.status IN ('completed', 'active') AND
         te.start_time >= ${thirtyDaysAgo}
       GROUP BY DATE(te.start_time)
       ORDER BY entry_date DESC
@@ -70,7 +71,20 @@ export async function getDashboardInsights(userId: number) {
           duration: mostBreaks.total_breaks
         },
         avgDailyWork: totalWork / result.length,
-        totalDaysWorked: result.length
+        totalDaysWorked: result.length,
+        weeklyChartData: Array.from({ length: 7 }, (_, i) => {
+          const date = new Date();
+          date.setDate(date.getDate() - (6 - i));
+          const dateStr = date.toISOString().split('T')[0];
+          const dayData = result.find(d => {
+            const dStr = new Date(d.entry_date).toISOString().split('T')[0];
+            return dStr === dateStr;
+          });
+          return {
+            day: date.toLocaleDateString('en-US', { weekday: 'short' }),
+            hours: dayData ? Math.round(((dayData.total_duration - dayData.total_breaks) / 3600000) * 10) / 10 : 0
+          };
+        })
       }
     };
   } catch (error) {
