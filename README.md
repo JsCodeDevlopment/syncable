@@ -1,6 +1,6 @@
 # Syncable - Gestão de Ponto & Payroll Dashboard
 
-![](https://img.shields.io/badge/Versão-2.0.0-blue?style=for-the-badge)
+![](https://img.shields.io/badge/Versão-2.0.0-black?style=for-the-badge)
 
 Plataforma moderna, intuitiva e responsiva desenvolvida para profissionais e empresas que buscam simplicidade e precisão no controle de jornada. O **Syncable** elimina a burocracia do registro de ponto, oferecendo uma experiência focada no que realmente importa: seu tempo.
 
