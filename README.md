@@ -1,6 +1,6 @@
 # Syncable - Gestão de Ponto & Payroll Dashboard
 
-![](https://img.shields.io/badge/Versão-1.5.0-black?style=for-the-badge)
+![](https://img.shields.io/badge/Versão-2.0.0-blue?style=for-the-badge)
 
 Plataforma moderna, intuitiva e responsiva desenvolvida para profissionais e empresas que buscam simplicidade e precisão no controle de jornada. O **Syncable** elimina a burocracia do registro de ponto, oferecendo uma experiência focada no que realmente importa: seu tempo.
 
@@ -31,7 +31,8 @@ O Syncable foi desenhado para ser seu aliado no dia a dia. Confira como a plataf
 
 - **Geração Intuitiva:** Esqueça formulários complexos. Use nosso fluxo guiado para criar relatórios diários, semanais ou mensais.
 - **Relatórios por Projeto:** Filtre suas jornadas por um cliente ou projeto específico para uma visão detalhada de ganhos e horas.
-- **Personalização Completa:** Escolha incluir seu **Nome** e **CPF/CNPJ** para relatórios prontos para contabilidade.
+- **📄 Exportação PDF Premium:** Gere documentos de nível executivo com a nova engine baseada em `@react-pdf/renderer`, com layout de alta fidelidade e branding integrado.
+- **Personalização Total:** Escolha incluir seu **Nome Profissional** e **Documento (CPF/CNPJ)** e decida se quer exibir os ganhos estimados ou apenas as horas trabalhadas.
 - **Exportação Master:** Gere arquivos **CSV/Excel** que agora incluem a coluna de **Projeto**, formatados perfeitamente para qualquer software de planilha.
 
 ### 4. 🖋️ Anotações e Detalhamento
@@ -46,7 +47,13 @@ O Syncable foi desenhado para ser seu aliado no dia a dia. Confira como a plataf
 - **Controle de Expiração:** Defina por quanto tempo o link ficará ativo (1 dia, 1 semana, etc.).
 - **Privacidade Total:** Escolha se quem recebe o link pode ver seus gráficos de performance ou apenas as horas brutas.
 
-### 6. 💰 Faturamento e Cálculo de Valores
+### 6. 🛡️ Segurança Enterprise e Privacidade
+
+- **Criptografia com Bcrypt:** Suas senhas são protegidas pelo padrão de mercado **Bcrypt**, com salting dinâmico e migração automática de dados antigos.
+- **Sessões Blindadas:** Gerenciamento de sessões via database com tokens UUID, garantindo que sua conta nunca seja comprometida.
+- **Isolamento de Dados:** Cada consulta ao banco é estritamente vinculada ao seu ID único, garantindo que ninguém mais veja suas horas.
+
+### 7. 💰 Faturamento e Cálculo de Valores
 
 - **Faturamento por Projeto:** Configure valores por hora e moedas diferentes para cada cliente. O sistema faz a matemática de forma independente.
 - **Taxa Global de Perfil:** Defina sua taxa padrão que servirá como fallback automático para projetos sem valores configurados.
@@ -62,12 +69,13 @@ O Syncable foi desenhado para ser seu aliado no dia a dia. Confira como a plataf
   <img src="https://img.shields.io/badge/Next.js_15-000?style=for-the-badge&logo=next.js&logoColor=white" />
   <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
   <img src="https://img.shields.io/badge/React_19-61DAFB?style=for-the-badge&logo=react&logoColor=black" />
+  <img src="https://img.shields.io/badge/Bcrypt.js-black?style=for-the-badge&logo=auth0&logoColor=white" />
+  <img src="https://img.shields.io/badge/React_PDF-FF4B4B?style=for-the-badge&logo=adobeacrobatreader&logoColor=white" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" />
   <img src="https://img.shields.io/badge/shadcn/ui-000?style=for-the-badge&logo=shadcnui&logoColor=white" />
   <img src="https://img.shields.io/badge/PostgreSQL_(Neon)-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" />
   <img src="https://img.shields.io/badge/Recharts-22b5bf?style=for-the-badge&logo=recharts&logoColor=white" />
   <img src="https://img.shields.io/badge/React_Hook_Form-EC5990?style=for-the-badge&logo=reacthookform&logoColor=white" />
-  <img src="https://img.shields.io/badge/Zod-3E67B1?style=for-the-badge&logo=zorin&logoColor=white" />
   <img src="https://img.shields.io/badge/Vercel-000?style=for-the-badge&logo=vercel&logoColor=white" />
 </div>
 

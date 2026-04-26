@@ -8,6 +8,41 @@ Este documento registra todas as atualizações, melhorias e correções aplicad
 
 - [ ] Estamos pensando...
 
+## [v2.0.0] - 2026-04-26
+
+### 🛡️ Core Security & Privacy Overhaul (Major Update)
+
+- **Criptografia de Próxima Geração (Bcrypt):**
+  - Migração completa do sistema de senhas de SHA-256 para **Bcryptjs** com salting dinâmico.
+  - **Auto-Migração Transparente:** Usuários antigos têm suas senhas atualizadas automaticamente no primeiro login bem-sucedido.
+- **Sistema de Sessões Baseado em Database:**
+  - Substituição do armazenamento local de IDs por **Tokens de Sessão UUID** armazenados no banco de dados.
+  - Maior segurança contra ataques de sequestro de sessão e manipulação de Client-side.
+- **Proteção Estrita de Rotas (Server-side):**
+  - Implementação de `requireAuth()` em todas as Server Actions.
+  - Todas as consultas ao banco agora possuem cláusulas `WHERE user_id = user.id` obrigatórias, garantindo isolamento total de dados entre usuários.
+
+### 📄 Engine de Exportação PDF Premium
+
+- **Geração de Documentos Executivos:**
+  - Nova engine baseada em `@react-pdf/renderer` para criação de PDFs de alta fidelidade diretamente no browser.
+  - **Design de Nível Executivo:** Layout com papel timbrado, badge de verificação, e numeração de páginas.
+- **Personalização Total:**
+  - Opção de adicionar **Nome Profissional** e **Documento (CPF/CNPJ)** customizados para cada exportação.
+  - **Controle de Privacidade Financeira:** Botão para alternar a exibição de ganhos estimados e valor/hora no documento final.
+- **Branding Integrado:** Inclusão automática do logotipo Syncable em alta resolução e formatação de moeda inteligente.
+
+### 📊 Estabilidade e Performance do Dashboard
+
+- **Resiliência de Dados:** Refatoração da engine de sumário para garantir funcionamento perfeito mesmo para novos usuários sem entradas registradas.
+- **Métricas em Tempo Real:** Otimização dos cálculos de variação percentual e tempo líquido (Net Work) com tratamento de valores nulos.
+- **Fix (Auth):** Correção do fluxo de redirecionamento pós-login para garantir acesso imediato à plataforma.
+
+### 🛠️ Excelência Técnica (DevOps)
+
+- **Next.js 15 Ready:** Ajustes de configuração no `next.config.mjs` para suporte a ESM em pacotes externos (`transpilePackages`).
+- **Data-Integrity:** Schema atualizado para suportar a tabela de `sessions` e migração de tokens.
+
 ---
 
 ## [v1.5.0] - 2026-04-20
