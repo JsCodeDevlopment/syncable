@@ -23,7 +23,6 @@ import { toast } from "@/components/ui/use-toast";
 import { useState } from "react";
 
 type SharingSettingsProps = {
-  userId: number;
   initialSettings: {
     allow_sharing: boolean;
     share_duration_days: number;
@@ -34,7 +33,6 @@ import { cn } from "@/lib/utils";
 import { Hourglass, Info, Share2, ShieldCheck } from "lucide-react";
 
 export function SharingSettings({
-  userId,
   initialSettings,
 }: SharingSettingsProps) {
   const [isSaving, setIsSaving] = useState(false);
@@ -48,7 +46,7 @@ export function SharingSettings({
   const handleSaveSharingSettings = async () => {
     setIsSaving(true);
     try {
-      const result = await updateUserSettings(userId, {
+      const result = await updateUserSettings({
         allow_sharing: shareReports,
         share_duration_days: Number.parseInt(shareDuration),
       });

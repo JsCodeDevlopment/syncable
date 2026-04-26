@@ -49,7 +49,7 @@ type Entry = {
   observations?: string | null;
 };
 
-export function RecentEntries({ userId, limit = 10 }: { userId: number, limit?: number }) {
+export function RecentEntries({ limit = 10 }: { limit?: number }) {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [entryToDelete, setEntryToDelete] = useState<number | null>(null);
@@ -59,7 +59,7 @@ export function RecentEntries({ userId, limit = 10 }: { userId: number, limit?: 
   const fetchEntries = async () => {
     setIsLoading(true);
     try {
-      const result = await getRecentTimeEntries(userId, limit);
+      const result = await getRecentTimeEntries(limit);
       if (result.success && result.data) {
         setEntries(result.data as unknown as Entry[]);
       } else if (!result.success) {
@@ -97,7 +97,7 @@ export function RecentEntries({ userId, limit = 10 }: { userId: number, limit?: 
     return () => {
       window.removeEventListener("timeEntryUpdated", handleTimeEntryUpdate);
     };
-  }, [userId]);
+  }, []);
 
   // Initial fetch and polling
   useEffect(() => {
@@ -109,14 +109,14 @@ export function RecentEntries({ userId, limit = 10 }: { userId: number, limit?: 
     }, 30000);
 
     return () => clearInterval(intervalId);
-  }, [userId, refreshKey]);
+  }, [refreshKey]);
 
   const handleDeleteEntry = async () => {
     if (!entryToDelete) return;
 
     setIsDeleting(true);
     try {
-      const result = await deleteTimeEntry(entryToDelete, userId);
+      const result = await deleteTimeEntry(entryToDelete);
       if (result.success) {
         toast({
           title: "Entry Deleted",
@@ -265,7 +265,6 @@ export function RecentEntries({ userId, limit = 10 }: { userId: number, limit?: 
 
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
                     <EditTimeEntry
-                      userId={userId}
                       timeEntryId={entry.id}
                       initialStartTime={startTime}
                       initialEndTime={endTime}

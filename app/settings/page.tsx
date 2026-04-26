@@ -32,7 +32,6 @@ import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
     const router = useRouter();
-    const [userId, setUserId] = useState<number | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [authError, setAuthError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState("general");
@@ -60,9 +59,7 @@ export default function SettingsPage() {
                     return;
                 }
 
-                setUserId(user.id);
-
-                const result = await getUserSettings(user.id);
+                const result = await getUserSettings();
 
                 if (result.success && result.data) {
                     setSettings(result.data);
@@ -116,7 +113,7 @@ export default function SettingsPage() {
         );
     }
 
-    if (isLoading || !settings || !userId) {
+    if (isLoading || !settings) {
         return (
             <DashboardShell>
                 <DashboardHeader heading="Settings" text="Loading your preferences..." />
@@ -193,7 +190,6 @@ export default function SettingsPage() {
                     <div className="animate-in fade-in duration-500">
                         {activeTab === "general" && (
                             <GeneralSettings
-                                userId={userId}
                                 initialSettings={{
                                     working_hours: settings.working_hours,
                                     timezone: settings.timezone,
@@ -206,12 +202,11 @@ export default function SettingsPage() {
                         )}
 
                         {activeTab === "projects" && (
-                            <ProjectSettings userId={userId} />
+                            <ProjectSettings />
                         )}
 
                         {activeTab === "notifications" && (
                             <NotificationSettings
-                                userId={userId}
                                 initialSettings={{
                                     enable_notifications: settings.enable_notifications,
                                     enable_email_notifications: settings.enable_email_notifications,
@@ -221,7 +216,6 @@ export default function SettingsPage() {
 
                         {activeTab === "sharing" && (
                             <SharingSettings
-                                userId={userId}
                                 initialSettings={{
                                     allow_sharing: settings.allow_sharing,
                                     share_duration_days: settings.share_duration_days,

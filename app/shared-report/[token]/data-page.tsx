@@ -51,6 +51,15 @@ import { Fragment, useEffect, useState } from "react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { RichTextViewer } from "@/components/rich-text-editor";
 import { cn } from "@/lib/utils";
+import { ReportPDF } from "@/components/reports/report-pdf";
+import dynamic from "next/dynamic";
+
+const PDFDownloadLink = dynamic(
+  () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
+  { ssr: false }
+);
+
+const formatDateBR = (date: Date) => date.toLocaleDateString("pt-BR");
 
 interface DataPageProps {
   token: string;
@@ -62,6 +71,11 @@ export function DataPage({ token }: DataPageProps) {
   const [reportData, setReportData] = useState<any>(null);
   const [report, setReport] = useState<any>(null);
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const toggleRow = (id: number) => {
     setExpandedRows((prev) => ({
@@ -186,10 +200,39 @@ export function DataPage({ token }: DataPageProps) {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-3 relative z-10">
+            <div className="flex flex-wrap items-center gap-3 relative z-10">
                 <Badge variant="secondary" className="px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shadow-lg shadow-emerald-500/10">
                   Verified Shared Report
                 </Badge>
+
+                {isClient && reportData && (
+                  <PDFDownloadLink
+                    document={
+                      <ReportPDF 
+                        data={reportData} 
+                        reportInfo={{
+                          name: report.report_name || "Time Tracking Report",
+                          type: report.report_type,
+                          startDate: new Date(report.start_date),
+                          endDate: new Date(report.end_date),
+                          idNumber: report.report_cpf_cnpj
+                        }} 
+                      />
+                    }
+                    fileName={`Syncable_Shared_${report.report_name || "Report"}_${formatDateBR(new Date())}.pdf`}
+                  >
+                    {({ loading }) => (
+                      <Button
+                        disabled={loading}
+                        variant="outline"
+                        className="h-9 rounded-xl font-bold gap-2 bg-background border-border hover:bg-primary hover:text-primary-foreground transition-all px-4 shadow-sm"
+                      >
+                        <FileText className="h-4 w-4" />
+                        {loading ? "Preparing..." : "Export PDF"}
+                      </Button>
+                    )}
+                  </PDFDownloadLink>
+                )}
             </div>
           </div>
 

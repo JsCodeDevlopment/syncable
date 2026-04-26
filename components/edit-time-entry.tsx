@@ -32,7 +32,6 @@ import {
 } from "@/components/ui/select"
 
 interface EditTimeEntryProps {
-  userId: number
   timeEntryId: number
   initialStartTime: Date
   initialEndTime: Date | null
@@ -47,7 +46,6 @@ interface EditTimeEntryProps {
 }
 
 export function EditTimeEntry({
-  userId,
   timeEntryId,
   initialStartTime,
   initialEndTime,
@@ -95,7 +93,7 @@ export function EditTimeEntry({
   useEffect(() => {
     const loadProjects = async () => {
       try {
-        const result = await getProjects(userId)
+        const result = await getProjects()
         if (result.success && result.data) {
           setProjects(result.data)
         }
@@ -104,7 +102,7 @@ export function EditTimeEntry({
       }
     }
     if (open) loadProjects()
-  }, [userId, open])
+  }, [open])
 
   const addBreak = () => {
     setBreakItems([
@@ -163,7 +161,6 @@ export function EditTimeEntry({
         timeEntryId, 
         startDateTime, 
         endDateTime, 
-        userId,
         JSON.stringify(observations),
         selectedProjectId === "none" ? null : parseInt(selectedProjectId)
       )
@@ -199,13 +196,13 @@ export function EditTimeEntry({
 
         if (breakItem.isDeleted) {
           // Delete existing break
-          await deleteBreak(breakItem.id, userId)
+          await deleteBreak(breakItem.id)
         } else if (breakItem.isNew) {
           // Add new break
-          await addBreakToTimeEntry(timeEntryId, breakStartTime, breakEndTime, userId)
+          await addBreakToTimeEntry(timeEntryId, breakStartTime, breakEndTime)
         } else {
           // Update existing break
-          await updateBreak(breakItem.id, breakStartTime, breakEndTime, userId)
+          await updateBreak(breakItem.id, breakStartTime, breakEndTime)
         }
       }
 

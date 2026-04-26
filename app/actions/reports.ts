@@ -4,6 +4,7 @@ import { formatDateForDisplay, formatTimeForDisplay, sql } from "@/lib/db";
 import crypto from "crypto";
 import { revalidatePath } from "next/cache";
 import { getUserSettings } from "./user-settings";
+import { requireAuth } from "./auth";
 
 export type ReportData = {
   entries: {
@@ -47,8 +48,8 @@ export type SharedReport = {
   updated_at: Date;
 };
 
-// Generate a report for a specific date range
-export async function generateReport(
+// Internal helper to generate a report for a specific user
+async function generateReportInternal(
   userId: number,
   startDate: Date,
   endDate: Date,
@@ -193,9 +194,19 @@ export async function generateReport(
   }
 }
 
+// Public action to generate a report for the current user
+export async function generateReport(
+  startDate: Date,
+  endDate: Date,
+  reportType: string,
+  projectId?: number | null
+) {
+  const user = await requireAuth();
+  return generateReportInternal(user.id, startDate, endDate, reportType, projectId);
+}
+
 // Create a shared report
 export async function createSharedReport(
-  userId: number,
   reportType: "daily" | "weekly" | "monthly",
   startDate: Date,
   endDate: Date,
@@ -205,6 +216,8 @@ export async function createSharedReport(
   reportCpfCnpj: string = "",
   projectId: number | null = null
 ): Promise<{ success: boolean; data?: SharedReport; error?: string }> {
+  const user = await requireAuth();
+  const userId = user.id;
   try {
     console.log(
       "Creating shared report for user:",
@@ -360,7 +373,7 @@ export async function getSharedReport(
     }
 
     // Generate the report data
-    const reportDataResult = await generateReport(
+    const reportDataResult = await generateReportInternal(
       report.user_id,
       new Date(report.start_date),
       new Date(report.end_date),
@@ -391,9 +404,9 @@ export async function getSharedReport(
 }
 
 // Get all shared reports for a user
-export async function getUserSharedReports(
-  userId: number
-): Promise<{ success: boolean; data?: SharedReport[]; error?: string }> {
+export async function getUserSharedReports(): Promise<{ success: boolean; data?: SharedReport[]; error?: string }> {
+  const user = await requireAuth();
+  const userId = user.id;
   try {
     // Check if the shared_reports table exists
     const tableCheck = (await sql`
@@ -430,9 +443,10 @@ export async function getUserSharedReports(
 
 // Delete a shared report
 export async function deleteSharedReport(
-  reportId: number,
-  userId: number
+  reportId: number
 ): Promise<{ success: boolean; error?: string }> {
+  const user = await requireAuth();
+  const userId = user.id;
   try {
     // Verify the report belongs to the user
     const verifyResult = (await sql`
@@ -465,9 +479,10 @@ export async function deleteSharedReport(
 
 // Delete multiple shared reports
 export async function deleteSharedReports(
-  reportIds: number[],
-  userId: number
+  reportIds: number[]
 ): Promise<{ success: boolean; error?: string }> {
+  const user = await requireAuth();
+  const userId = user.id;
   try {
     if (reportIds.length === 0) {
       return { success: true };
@@ -515,9 +530,9 @@ export async function deleteSharedReports(
 }
 
 // Get global report aggregation based on all saved reports
-export async function getGlobalReportAggregation(
-  userId: number
-): Promise<{ success: boolean; data?: ReportData; error?: string }> {
+export async function getGlobalReportAggregation(): Promise<{ success: boolean; data?: ReportData; error?: string }> {
+  const user = await requireAuth();
+  const userId = user.id;
   try {
     // 1. Get all saved reports for the user
     // Directly fetch without calling the other action to simplify

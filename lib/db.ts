@@ -20,11 +20,7 @@ try {
   const dbUrl = getDatabaseUrl()
   sqlClient = neon(dbUrl)
 
-  sqlClient`SET timezone = 'America/Sao_Paulo'`.catch((err) => {
-    console.error("Failed to set database timezone:", err)
-  })
-
-  console.log("Database connection initialized successfully with Brazil time zone")
+  console.log("Database connection initialized successfully")
 } catch (error) {
   console.error("Failed to initialize database connection:", error)
   sqlClient = (() => {
@@ -40,20 +36,20 @@ export function calculateDuration(startTime: Date, endTime: Date | null): number
   return endTime.getTime() - startTime.getTime()
 }
 
-export function formatTimeForDisplay(date: Date): string {
+export function formatTimeForDisplay(date: Date, timeZone: string = "UTC"): string {
   return date.toLocaleTimeString("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,
-    timeZone: "America/Sao_Paulo",
+    timeZone,
   })
 }
 
-export function formatDateForDisplay(date: Date): string {
+export function formatDateForDisplay(date: Date, timeZone: string = "UTC"): string {
   return date.toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-    timeZone: "America/Sao_Paulo",
+    timeZone,
   })
 }

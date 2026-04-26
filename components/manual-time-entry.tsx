@@ -33,11 +33,10 @@ import {
 import { Briefcase } from "lucide-react"
 
 interface ManualTimeEntryProps {
-  userId: number
   onSuccess?: () => void
 }
 
-export function ManualTimeEntry({ userId, onSuccess }: ManualTimeEntryProps) {
+export function ManualTimeEntry({ onSuccess }: ManualTimeEntryProps) {
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -60,7 +59,7 @@ export function ManualTimeEntry({ userId, onSuccess }: ManualTimeEntryProps) {
   useEffect(() => {
     const loadProjects = async () => {
       try {
-        const result = await getProjects(userId)
+        const result = await getProjects()
         if (result.success && result.data) {
           setProjects(result.data)
         }
@@ -69,7 +68,7 @@ export function ManualTimeEntry({ userId, onSuccess }: ManualTimeEntryProps) {
       }
     }
     if (open) loadProjects()
-  }, [userId, open])
+  }, [open])
 
   const addBreak = () => {
     setBreaks([...breaks, { id: nextBreakId, startTime: "12:00", endTime: "13:00" }])
@@ -147,7 +146,6 @@ export function ManualTimeEntry({ userId, onSuccess }: ManualTimeEntryProps) {
       // Submit the entry
       const projectId = selectedProjectId === "none" ? null : parseInt(selectedProjectId)
       const result = await createManualTimeEntry(
-        userId, 
         startDateTime, 
         endDateTime, 
         formattedBreaks,

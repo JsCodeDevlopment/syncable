@@ -2,6 +2,7 @@
 
 import { sql } from "@/lib/db"
 import { revalidatePath } from "next/cache"
+import { requireAuth } from "./auth"
 
 type DbUserProfile = {
   id: number
@@ -10,7 +11,9 @@ type DbUserProfile = {
   created_at: string
 }
 
-export async function updateUserName(userId: number, name: string) {
+export async function updateUserName(name: string) {
+  const user = await requireAuth()
+  const userId = user.id
   try {
     // Update user name in the database
     await sql`
@@ -35,7 +38,9 @@ export async function updateUserName(userId: number, name: string) {
   }
 }
 
-export async function getUserProfile(userId: number) {
+export async function getUserProfile() {
+  const user = await requireAuth()
+  const userId = user.id
   try {
     const result = (await sql`
       SELECT id, name, email, created_at

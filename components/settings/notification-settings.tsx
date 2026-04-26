@@ -17,7 +17,6 @@ import { toast } from "@/components/ui/use-toast";
 import { useState } from "react";
 
 type NotificationSettingsProps = {
-  userId: number;
   initialSettings: {
     enable_notifications: boolean;
     enable_email_notifications: boolean;
@@ -28,7 +27,6 @@ import { cn } from "@/lib/utils";
 import { Bell, Mail, ShieldAlert, Zap } from "lucide-react";
 
 export function NotificationSettings({
-  userId,
   initialSettings,
 }: NotificationSettingsProps) {
   const [isSaving, setIsSaving] = useState(false);
@@ -43,7 +41,7 @@ export function NotificationSettings({
   const handleSaveNotificationSettings = async () => {
     setIsSaving(true);
     try {
-      const result = await updateUserSettings(userId, {
+      const result = await updateUserSettings({
         enable_notifications: notifications,
         enable_email_notifications: emailNotifications,
       });
