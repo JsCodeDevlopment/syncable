@@ -46,7 +46,6 @@ type UserProfile = {
 };
 
 type GeneralSettingsProps = {
-  userId: number;
   initialSettings: {
     working_hours: number;
     timezone: string;
@@ -58,7 +57,6 @@ type GeneralSettingsProps = {
 };
 
 export function GeneralSettings({
-  userId,
   initialSettings,
 }: GeneralSettingsProps) {
   const [isSaving, setIsSaving] = useState(false);
@@ -78,7 +76,7 @@ export function GeneralSettings({
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        const result = await getUserProfile(userId);
+        const result = await getUserProfile();
         if (result.success && result.data) {
           setProfile(result.data);
           setName(result.data.name);
@@ -94,7 +92,7 @@ export function GeneralSettings({
       }
     };
     loadProfile();
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     if (profile && name !== profile.name) {
@@ -108,7 +106,7 @@ export function GeneralSettings({
     if (!name.trim()) return;
     setIsSavingProfile(true);
     try {
-      const result = await updateUserName(userId, name.trim());
+      const result = await updateUserName(name.trim());
       if (result.success) {
         toast({
           title: "Profile updated",
@@ -135,7 +133,7 @@ export function GeneralSettings({
   const handleSaveGeneralSettings = async () => {
     setIsSaving(true);
     try {
-      const result = await updateUserSettings(userId, {
+      const result = await updateUserSettings({
         working_hours: Number.parseInt(workingHours),
         timezone,
         hourly_rate: hourlyRate ? Number.parseFloat(hourlyRate) : null,
@@ -232,7 +230,7 @@ export function GeneralSettings({
         </Card>
 
         {/* Theme Section */}
-        <ThemeSettings userId={userId} initialTheme={initialSettings.theme} />
+        <ThemeSettings initialTheme={initialSettings.theme} />
       </div>
 
       {/* Preferences Section */}

@@ -23,14 +23,13 @@ import { useTheme } from "next-themes";
 import { useState } from "react";
 
 type ThemeSettingsProps = {
-  userId: number;
   initialTheme: "light" | "dark" | "system";
 };
 
 import { Sun, Moon, Monitor, Palette, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function ThemeSettings({ userId, initialTheme }: ThemeSettingsProps) {
+export function ThemeSettings({ initialTheme }: ThemeSettingsProps) {
   const { setTheme } = useTheme();
   const [isSaving, setIsSaving] = useState(false);
   const [currentTheme, setCurrentTheme] = useState(initialTheme);
@@ -52,7 +51,7 @@ export function ThemeSettings({ userId, initialTheme }: ThemeSettingsProps) {
 
     setIsSaving(true);
     try {
-      const result = await updateUserSettings(userId, {
+      const result = await updateUserSettings({
         theme: currentTheme,
       });
 

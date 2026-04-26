@@ -3,16 +3,18 @@
 import { sql } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import type { Break, TimeEntry } from "./time-entries";
+import { requireAuth } from "./auth";
 
 // Create a manual time entry
 export async function createManualTimeEntry(
-  userId: number,
   startTime: Date,
   endTime: Date | null,
   breakDetails: { startTime: Date; endTime: Date | null }[],
   observations?: string,
   projectId?: number | null,
 ) {
+  const user = await requireAuth()
+  const userId = user.id
   try {
     // Start a transaction
     await sql`BEGIN`
@@ -65,10 +67,11 @@ export async function updateTimeEntry(
   timeEntryId: number,
   startTime: Date,
   endTime: Date | null,
-  userId: number,
   observations?: string,
   projectId?: number | null,
 ) {
+  const user = await requireAuth()
+  const userId = user.id
   try {
     // Verify the time entry belongs to the user
     const verifyResult = await sql`
@@ -106,8 +109,9 @@ export async function addBreakToTimeEntry(
   timeEntryId: number,
   breakStartTime: Date,
   breakEndTime: Date | null,
-  userId: number,
 ) {
+  const user = await requireAuth()
+  const userId = user.id
   try {
     // Verify the time entry belongs to the user
     const verifyResult = await sql`
@@ -134,7 +138,9 @@ export async function addBreakToTimeEntry(
 }
 
 // Update an existing break
-export async function updateBreak(breakId: number, breakStartTime: Date, breakEndTime: Date | null, userId: number) {
+export async function updateBreak(breakId: number, breakStartTime: Date, breakEndTime: Date | null) {
+  const user = await requireAuth()
+  const userId = user.id
   try {
     // Verify the break belongs to the user's time entry
     const verifyResult = await sql`
@@ -167,7 +173,9 @@ export async function updateBreak(breakId: number, breakStartTime: Date, breakEn
 }
 
 // Delete a break
-export async function deleteBreak(breakId: number, userId: number) {
+export async function deleteBreak(breakId: number) {
+  const user = await requireAuth()
+  const userId = user.id
   try {
     // Verify the break belongs to the user's time entry
     const verifyResult = await sql`
@@ -195,7 +203,9 @@ export async function deleteBreak(breakId: number, userId: number) {
 }
 
 // Delete a time entry and all associated breaks
-export async function deleteTimeEntry(timeEntryId: number, userId: number) {
+export async function deleteTimeEntry(timeEntryId: number) {
+  const user = await requireAuth()
+  const userId = user.id
   try {
     // Verify the time entry belongs to the user
     const verifyResult = await sql`

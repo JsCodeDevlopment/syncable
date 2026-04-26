@@ -10,6 +10,7 @@ import {
   startTimeEntry,
   updateTimeEntry,
 } from "@/app/actions/time-entries";
+import { getUserSettings } from "@/app/actions/user-settings";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -33,10 +34,10 @@ import {
 import { toast } from "@/components/ui/use-toast";
 import { formatDuration, formatTimer } from "@/lib/format-duration";
 import {
-  createBrazilianDate,
   formatDateForInput,
   formatTimeForInput,
-  getNowInBrazil,
+  getNow,
+  DEFAULT_TIMEZONE,
 } from "@/lib/timezone";
 import {
   AlertCircle,
@@ -46,12 +47,13 @@ import {
   FileText,
   LogOut,
   Play,
+  Keyboard,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Descendant } from "slate";
 import { ManualTimeEntry } from "./manual-time-entry";
 
-export function TimeTracker({ userId }: { userId: number }) {
+export function TimeTracker() {
   const [status, setStatus] = useState<"idle" | "working" | "break">("idle");
   const [activeTimeEntryId, setActiveTimeEntryId] = useState<number | null>(
     null,
@@ -78,6 +80,7 @@ export function TimeTracker({ userId }: { userId: number }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>("none");
   const [activeProject, setActiveProject] = useState<Project | null>(null);
+  const [timezone, setTimezone] = useState<string>(DEFAULT_TIMEZONE);
 
   const triggerRefresh = () => {
     setRefreshTrigger((prev) => prev + 1);
@@ -88,7 +91,7 @@ export function TimeTracker({ userId }: { userId: number }) {
   useEffect(() => {
     const checkActiveTimeEntry = async () => {
       try {
-        const result = await getActiveTimeEntry(userId);
+        const result = await getActiveTimeEntry();
 
         if (result.success && result.data) {
           const { timeEntry, activeBreak } = result.data;
@@ -126,7 +129,7 @@ export function TimeTracker({ userId }: { userId: number }) {
 
     const loadProjects = async () => {
       try {
-        const result = await getProjects(userId);
+        const result = await getProjects();
         if (result.success && result.data) {
           setProjects(result.data);
         }
@@ -135,9 +138,21 @@ export function TimeTracker({ userId }: { userId: number }) {
       }
     };
 
+    const loadSettings = async () => {
+      try {
+        const result = await getUserSettings();
+        if (result.success && result.data) {
+          setTimezone(result.data.timezone || DEFAULT_TIMEZONE);
+        }
+      } catch (error) {
+        console.error("Error loading settings:", error);
+      }
+    };
+
     checkActiveTimeEntry();
     loadProjects();
-  }, [userId, refreshTrigger]);
+    loadSettings();
+  }, [refreshTrigger]);
 
   useEffect(() => {
     if (selectedProjectId !== "none") {
@@ -176,13 +191,47 @@ export function TimeTracker({ userId }: { userId: number }) {
     return () => clearInterval(interval);
   }, [status, startTime, breakStartTime, totalBreakTime]);
 
+  // Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input or editor
+      if (
+        e.target instanceof HTMLInputElement || 
+        e.target instanceof HTMLTextAreaElement ||
+        (e.target as HTMLElement).isContentEditable
+      ) {
+        return;
+      }
+
+      if (e.code === "Space") {
+        e.preventDefault();
+        if (status === "idle") {
+          handleStartWorking();
+        } else if (status === "working") {
+          handleEndDay();
+        } else if (status === "break") {
+          handleResumeWorking();
+        }
+      } else if (e.code === "KeyB") {
+        if (status === "working") {
+          handleStartBreak();
+        } else if (status === "break") {
+          handleResumeWorking();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [status, isLoading, selectedProjectId, activeTimeEntryId, activeBreakId, startTime, breakStartTime]);
+
   const handleStartWorking = async () => {
     setIsLoading(true);
 
     try {
       const projectId =
         selectedProjectId === "none" ? null : parseInt(selectedProjectId);
-      const result = await startTimeEntry(userId, projectId);
+      const result = await startTimeEntry(projectId);
 
       if (result.success && result.data) {
         setStatus("working");
@@ -216,9 +265,9 @@ export function TimeTracker({ userId }: { userId: number }) {
 
     setIsLoading(true);
     try {
-      const now = getNowInBrazil();
-      const dateStr = formatDateForInput(now);
-      const newStartDateTime = createBrazilianDate(dateStr, adjustedStartTime);
+      const now = getNow(timezone);
+      const dateStr = formatDateForInput(now, timezone);
+      const newStartDateTime = new Date(`${dateStr}T${adjustedStartTime}:00`);
 
       const result = await updateTimeEntry(activeTimeEntryId, {
         start_time: newStartDateTime,
@@ -321,8 +370,8 @@ export function TimeTracker({ userId }: { userId: number }) {
   };
 
   const handleEndDay = async () => {
-    const now = getNowInBrazil();
-    setAdjustedEndTime(formatTimeForInput(now));
+    const now = getNow(timezone);
+    setAdjustedEndTime(formatTimeForInput(now, timezone));
     setIsDelayedExit(false);
     setIsFinishDialogOpen(true);
   };
@@ -339,9 +388,9 @@ export function TimeTracker({ userId }: { userId: number }) {
 
       let finalEndTime: Date | undefined = undefined;
       if (isDelayedExit && adjustedEndTime) {
-        const now = getNowInBrazil();
-        const dateStr = formatDateForInput(now);
-        finalEndTime = createBrazilianDate(dateStr, adjustedEndTime);
+        const now = getNow(timezone);
+        const dateStr = formatDateForInput(now, timezone);
+        finalEndTime = new Date(`${dateStr}T${adjustedEndTime}:00`);
       }
 
       const result = await endTimeEntry(
@@ -506,7 +555,7 @@ export function TimeTracker({ userId }: { userId: number }) {
               </div>
 
               <div className="flex justify-center">
-                <ManualTimeEntry userId={userId} onSuccess={refreshData} />
+                <ManualTimeEntry onSuccess={refreshData} />
               </div>
             </div>
           </div>
@@ -554,6 +603,19 @@ export function TimeTracker({ userId }: { userId: number }) {
             </Button>
           </div>
         )}
+
+        <div className="flex items-center justify-center gap-6 mt-4 opacity-40 hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-1.5">
+            <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[9px] font-bold">SPACE</kbd>
+            <span className="text-[9px] font-bold uppercase tracking-wider">{status === "idle" ? "Start" : "End"}</span>
+          </div>
+          {status !== "idle" && (
+            <div className="flex items-center gap-1.5">
+              <kbd className="px-1.5 py-0.5 rounded border border-border bg-muted text-[9px] font-bold">B</kbd>
+              <span className="text-[9px] font-bold uppercase tracking-wider">{status === "break" ? "Resume" : "Break"}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {status !== "idle" && (
@@ -587,7 +649,7 @@ export function TimeTracker({ userId }: { userId: number }) {
               className="ml-2 h-7 px-2 text-[10px] text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
               onClick={() => {
                 if (startTime) {
-                  setAdjustedStartTime(formatTimeForInput(startTime));
+                  setAdjustedStartTime(formatTimeForInput(startTime, timezone));
                   setIsAdjustingStart(true);
                 }
               }}

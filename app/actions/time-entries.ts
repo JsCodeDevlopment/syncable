@@ -2,6 +2,7 @@
 
 import { sql } from "@/lib/db"
 import { revalidatePath } from "next/cache"
+import { requireAuth } from "./auth"
 
 // Ensure observations column exists
 async function ensureObservationsColumn() {
@@ -47,11 +48,13 @@ export type Break = {
 }
 
 // Start a new time entry
-export async function startTimeEntry(userId: number, projectId?: number | null) {
+export async function startTimeEntry(projectId?: number | null) {
+  const user = await requireAuth()
+  
   try {
     const result = (await sql`
       INSERT INTO time_entries (user_id, project_id, start_time, status)
-      VALUES (${userId}, ${projectId || null}, NOW(), 'active')
+      VALUES (${user.id}, ${projectId || null}, NOW(), 'active')
       RETURNING id, user_id, project_id, start_time, end_time, status, created_at, updated_at
     `) as TimeEntry[]
 
@@ -65,8 +68,16 @@ export async function startTimeEntry(userId: number, projectId?: number | null) 
 
 // End a time entry
 export async function endTimeEntry(timeEntryId: number, observations?: string, endTime?: Date) {
+  const user = await requireAuth()
+
   try {
     const finalEndTime = endTime || new Date();
+
+    // Verify ownership
+    const entries = await sql`SELECT id FROM time_entries WHERE id = ${timeEntryId} AND user_id = ${user.id}`
+    if (entries.length === 0) {
+      return { success: false, error: "Unauthorized or entry not found" }
+    }
 
     // First, end any active breaks for this time entry
     await sql`
@@ -97,13 +108,16 @@ export async function endTimeEntry(timeEntryId: number, observations?: string, e
 
 // Update a time entry (e.g. for delayed entry/exit)
 export async function updateTimeEntry(timeEntryId: number, updates: { start_time?: Date; end_time?: Date; observations?: string }) {
+  const user = await requireAuth()
+
   try {
     const timeEntries = (await sql`
-      SELECT id, start_time, end_time, observations FROM time_entries WHERE id = ${timeEntryId}
+      SELECT id, start_time, end_time, observations FROM time_entries 
+      WHERE id = ${timeEntryId} AND user_id = ${user.id}
     `) as TimeEntry[]
 
     if (timeEntries.length === 0) {
-      return { success: false, error: "Time entry not found" }
+      return { success: false, error: "Unauthorized or entry not found" }
     }
 
     const currentEntry = timeEntries[0]
@@ -132,7 +146,15 @@ export async function updateTimeEntry(timeEntryId: number, updates: { start_time
 
 // Start a break
 export async function startBreak(timeEntryId: number) {
+  const user = await requireAuth()
+
   try {
+    // Verify ownership of the time entry
+    const entries = await sql`SELECT id FROM time_entries WHERE id = ${timeEntryId} AND user_id = ${user.id}`
+    if (entries.length === 0) {
+      return { success: false, error: "Unauthorized or entry not found" }
+    }
+
     const result = (await sql`
       INSERT INTO breaks (time_entry_id, start_time)
       VALUES (${timeEntryId}, NOW())
@@ -149,7 +171,19 @@ export async function startBreak(timeEntryId: number) {
 
 // End a break
 export async function endBreak(breakId: number) {
+  const user = await requireAuth()
+
   try {
+    // Verify ownership via time_entry
+    const breaks_auth = await sql`
+      SELECT b.id FROM breaks b 
+      JOIN time_entries te ON b.time_entry_id = te.id 
+      WHERE b.id = ${breakId} AND te.user_id = ${user.id}
+    `
+    if (breaks_auth.length === 0) {
+      return { success: false, error: "Unauthorized or break not found" }
+    }
+
     const result = (await sql`
       UPDATE breaks
       SET end_time = NOW(), updated_at = NOW()
@@ -166,7 +200,9 @@ export async function endBreak(breakId: number) {
 }
 
 // Get active time entry for a user
-export async function getActiveTimeEntry(userId: number) {
+export async function getActiveTimeEntry() {
+  const user = await requireAuth()
+
   try {
     const timeEntries = (await sql`
       SELECT 
@@ -174,7 +210,7 @@ export async function getActiveTimeEntry(userId: number) {
         p.name as project_name, p.color as project_color
       FROM time_entries te
       LEFT JOIN projects p ON te.project_id = p.id
-      WHERE te.user_id = ${userId} AND te.status = 'active' AND te.end_time IS NULL
+      WHERE te.user_id = ${user.id} AND te.status = 'active' AND te.end_time IS NULL
       ORDER BY te.start_time DESC
       LIMIT 1
     `) as TimeEntry[]
@@ -212,7 +248,15 @@ export async function getActiveTimeEntry(userId: number) {
 
 // Get total break time for a time entry
 export async function getTotalBreakTime(timeEntryId: number) {
+  const user = await requireAuth()
+
   try {
+    // Verify ownership
+    const entries = await sql`SELECT id FROM time_entries WHERE id = ${timeEntryId} AND user_id = ${user.id}`
+    if (entries.length === 0) {
+      return { success: false, error: "Unauthorized" }
+    }
+
     const result = (await sql`
       SELECT 
         COALESCE(
@@ -234,7 +278,9 @@ export async function getTotalBreakTime(timeEntryId: number) {
 }
 
 // Get recent time entries for a user
-export async function getRecentTimeEntries(userId: number, limit: number = 10) {
+export async function getRecentTimeEntries(limit: number = 10) {
+  const user = await requireAuth()
+
   try {
     const timeEntries = (await sql`
       SELECT 
@@ -260,7 +306,7 @@ export async function getRecentTimeEntries(userId: number, limit: number = 10) {
       FROM time_entries te
       LEFT JOIN breaks b ON te.id = b.time_entry_id
       LEFT JOIN projects p ON te.project_id = p.id
-      WHERE te.user_id = ${userId} AND te.status = 'completed'
+      WHERE te.user_id = ${user.id} AND te.status = 'completed'
       GROUP BY te.id, p.name, p.color
       ORDER BY te.start_time DESC
       LIMIT ${limit}
@@ -287,7 +333,9 @@ export async function getRecentTimeEntries(userId: number, limit: number = 10) {
 }
 
 // Get time entries for a specific date range
-export async function getTimeEntriesInRange(userId: number, startDate: Date, endDate: Date) {
+export async function getTimeEntriesInRange(startDate: Date, endDate: Date) {
+  const user = await requireAuth()
+
   try {
     const timeEntries = (await sql`
       SELECT 
@@ -314,7 +362,7 @@ export async function getTimeEntriesInRange(userId: number, startDate: Date, end
       LEFT JOIN breaks b ON te.id = b.time_entry_id
       LEFT JOIN projects p ON te.project_id = p.id
       WHERE 
-        te.user_id = ${userId} AND 
+        te.user_id = ${user.id} AND 
         te.status = 'completed' AND
         te.start_time >= ${startDate} AND 
         te.start_time <= ${endDate}
@@ -330,7 +378,9 @@ export async function getTimeEntriesInRange(userId: number, startDate: Date, end
 }
 
 // Get daily stats for a user
-export async function getDailyStats(userId: number, date: Date) {
+export async function getDailyStats(date: Date) {
+  const user = await requireAuth()
+
   const startOfDay = new Date(date)
   startOfDay.setHours(0, 0, 0, 0)
 
@@ -373,7 +423,7 @@ export async function getDailyStats(userId: number, date: Date) {
         FROM time_entries te
         LEFT JOIN breaks b ON te.id = b.time_entry_id
         WHERE 
-          te.user_id = ${userId} AND 
+          te.user_id = ${user.id} AND 
           te.start_time >= ${startOfDay} AND 
           te.start_time <= ${endOfDay}
         GROUP BY hour, te.id, te.start_time, te.end_time
@@ -405,7 +455,9 @@ export async function getDailyStats(userId: number, date: Date) {
 }
 
 // Get weekly stats for a user
-export async function getWeeklyStats(userId: number, date: Date) {
+export async function getWeeklyStats(date: Date) {
+  const user = await requireAuth()
+
   const startOfWeek = new Date(date)
   startOfWeek.setDate(date.getDate() - date.getDay()) // Start from Sunday
   startOfWeek.setHours(0, 0, 0, 0)
@@ -429,7 +481,7 @@ export async function getWeeklyStats(userId: number, date: Date) {
         FROM time_entries te
         LEFT JOIN breaks b ON te.id = b.time_entry_id
         WHERE 
-          te.user_id = ${userId} AND 
+          te.user_id = ${user.id} AND 
           te.start_time >= ${startOfWeek} AND 
           te.start_time <= ${endOfWeek}
         GROUP BY day_of_week, te.id, te.start_time, te.end_time
@@ -462,7 +514,9 @@ export async function getWeeklyStats(userId: number, date: Date) {
 }
 
 // Get monthly stats for a user
-export async function getMonthlyStats(userId: number, date: Date) {
+export async function getMonthlyStats(date: Date) {
+  const user = await requireAuth()
+
   const year = date.getFullYear()
   const month = date.getMonth()
 
@@ -484,7 +538,7 @@ export async function getMonthlyStats(userId: number, date: Date) {
         FROM time_entries te
         LEFT JOIN breaks b ON te.id = b.time_entry_id
         WHERE 
-          te.user_id = ${userId} AND 
+          te.user_id = ${user.id} AND 
           te.start_time >= ${startOfMonth} AND 
           te.start_time <= ${endOfMonth}
         GROUP BY week_of_month, te.id, te.start_time, te.end_time

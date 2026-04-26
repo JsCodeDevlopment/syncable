@@ -2,6 +2,7 @@
 
 import { sql } from "@/lib/db";
 import { formatDateForDisplay } from "@/lib/db";
+import { requireAuth } from "./auth";
 
 export type DashboardInsight = {
   mostWorkedDay: { date: string; duration: number } | null;
@@ -11,7 +12,9 @@ export type DashboardInsight = {
   weeklyChartData: { day: string; hours: number }[];
 };
 
-export async function getDashboardInsights(userId: number) {
+export async function getDashboardInsights() {
+  const user = await requireAuth();
+  const userId = user.id;
   try {
     // Get last 30 days of completed time entries
     const thirtyDaysAgo = new Date();

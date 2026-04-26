@@ -1,6 +1,7 @@
 "use server"
 
 import { sql } from "@/lib/db"
+import { requireAuth } from "./auth"
 
 export type SummaryData = {
   today: {
@@ -40,9 +41,10 @@ export type SummaryData = {
   }[]
 }
 
-export async function getDashboardSummary(
-  userId: number,
-): Promise<{ success: boolean; data?: SummaryData; error?: string }> {
+export async function getDashboardSummary(): Promise<{ success: boolean; data?: SummaryData; error?: string }> {
+  const user = await requireAuth()
+  const userId = user.id
+
   try {
     // Get today's data
     const today = new Date()
@@ -83,17 +85,16 @@ export async function getDashboardSummary(
     // Today's data
     const todayResult = (await sql`
       WITH te_filtered AS (
-          -- Step 1: Filter the time entries for the specific user and date
           SELECT 
               id,
-              EXTRACT(EPOCH FROM (COALESCE(end_time, CURRENT_TIMESTAMP) - start_time)) * 1000 AS duration
+              EXTRACT(EPOCH FROM (COALESCE(end_time, CURRENT_TIMESTAMP) - start_time)) * 1000 AS duration,
+              project_id
           FROM time_entries
           WHERE user_id = ${userId}
             AND start_time >= ${startOfToday}
             AND start_time <= ${endOfToday}
       ),
       break_stats AS (
-          -- Step 2: Aggregate break data per time entry
           SELECT 
               time_entry_id,
               COUNT(*) AS cnt,
@@ -102,7 +103,6 @@ export async function getDashboardSummary(
           WHERE time_entry_id IN (SELECT id FROM te_filtered)
           GROUP BY time_entry_id
       )
-      -- Step 3: Join and sum everything once
       SELECT 
           COALESCE(SUM(te.duration), 0)::FLOAT AS total_duration,
           COALESCE(SUM(bs.break_duration), 0)::FLOAT AS total_break_time,
@@ -111,14 +111,13 @@ export async function getDashboardSummary(
             (te.duration - COALESCE(bs.break_duration, 0)) / 3600000.0 * COALESCE(p.hourly_rate, us.hourly_rate, 0)
           ), 0)::FLOAT AS total_earnings,
           COALESCE(us.currency, 'BRL') as currency
-      FROM te_filtered te
-      CROSS JOIN users u
+      FROM users u
       LEFT JOIN user_settings us ON us.user_id = u.id
-      LEFT JOIN time_entries orig_te ON te.id = orig_te.id
-      LEFT JOIN projects p ON orig_te.project_id = p.id
+      LEFT JOIN te_filtered te ON 1=1
+      LEFT JOIN projects p ON te.project_id = p.id
       LEFT JOIN break_stats bs ON te.id = bs.time_entry_id
       WHERE u.id = ${userId}
-      GROUP BY us.currency;
+      GROUP BY u.id, us.currency;
     `) as { total_duration: number; total_break_time: number; break_count: number; total_earnings: number; currency: string }[]
 
     // Get project distribution for current month (Work vs Breaks)
@@ -270,28 +269,28 @@ export async function getDashboardSummary(
     const monthEarnings = financialResult[0]?.month_earnings || 0
 
     // Calculate percent changes
-    const todayDuration = todayResult[0].total_duration
-    const todayBreakTime = todayResult[0].total_break_time
+    const todayDuration = todayResult[0]?.total_duration || 0
+    const todayBreakTime = todayResult[0]?.total_break_time || 0
     const todayNetDuration = todayDuration - todayBreakTime
 
-    const yesterdayDuration = yesterdayResult[0].total_duration
-    const yesterdayBreakTime = yesterdayResult[0].total_break_time
+    const yesterdayDuration = yesterdayResult[0]?.total_duration || 0
+    const yesterdayBreakTime = yesterdayResult[0]?.total_break_time || 0
     const yesterdayNetDuration = yesterdayDuration - yesterdayBreakTime
 
-    const weekDuration = weekResult[0].total_duration
-    const weekBreakTime = weekResult[0].total_break_time
+    const weekDuration = weekResult[0]?.total_duration || 0
+    const weekBreakTime = weekResult[0]?.total_break_time || 0
     const weekNetDuration = weekDuration - weekBreakTime
 
-    const lastWeekDuration = lastWeekResult[0].total_duration
-    const lastWeekBreakTime = lastWeekResult[0].total_break_time
+    const lastWeekDuration = lastWeekResult[0]?.total_duration || 0
+    const lastWeekBreakTime = lastWeekResult[0]?.total_break_time || 0
     const lastWeekNetDuration = lastWeekDuration - lastWeekBreakTime
 
-    const monthDuration = monthResult[0].total_duration
-    const monthBreakTime = monthResult[0].total_break_time
+    const monthDuration = monthResult[0]?.total_duration || 0
+    const monthBreakTime = monthResult[0]?.total_break_time || 0
     const monthNetDuration = monthDuration - monthBreakTime
 
-    const lastMonthDuration = lastMonthResult[0].total_duration
-    const lastMonthBreakTime = lastMonthResult[0].total_break_time
+    const lastMonthDuration = lastMonthResult[0]?.total_duration || 0
+    const lastMonthBreakTime = lastMonthResult[0]?.total_break_time || 0
     const lastMonthNetDuration = lastMonthDuration - lastMonthBreakTime
 
     // Calculate percent changes

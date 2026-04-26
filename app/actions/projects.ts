@@ -2,6 +2,7 @@
 
 import { sql } from "@/lib/db"
 import { revalidatePath } from "next/cache"
+import { requireAuth } from "./auth"
 
 export type Project = {
   id: number
@@ -50,11 +51,13 @@ async function ensureProjectsSchema() {
 // Call schema check
 ensureProjectsSchema()
 
-export async function getProjects(userId: number) {
+export async function getProjects() {
+  const user = await requireAuth()
+
   try {
     const projects = (await sql`
       SELECT * FROM projects 
-      WHERE user_id = ${userId} 
+      WHERE user_id = ${user.id} 
       ORDER BY name ASC
     `) as Project[]
     return { success: true, data: projects }
@@ -64,7 +67,7 @@ export async function getProjects(userId: number) {
   }
 }
 
-export async function createProject(userId: number, data: {
+export async function createProject(data: {
     name: string
     client_name?: string
     color?: string
@@ -72,10 +75,12 @@ export async function createProject(userId: number, data: {
     currency?: string
   },
 ) {
+  const user = await requireAuth()
+
   try {
     const result = (await sql`
       INSERT INTO projects (user_id, name, client_name, color, hourly_rate, currency)
-      VALUES (${userId}, ${data.name}, ${data.client_name || null}, ${data.color || "#3b82f6"}, ${data.hourly_rate || null}, ${data.currency || null})
+      VALUES (${user.id}, ${data.name}, ${data.client_name || null}, ${data.color || "#3b82f6"}, ${data.hourly_rate || null}, ${data.currency || null})
       RETURNING *
     `) as Project[]
     
@@ -95,6 +100,8 @@ export async function updateProject(projectId: number, data: {
     currency?: string
   },
 ) {
+  const user = await requireAuth()
+
   try {
     const result = (await sql`
       UPDATE projects
@@ -105,10 +112,14 @@ export async function updateProject(projectId: number, data: {
         hourly_rate = ${data.hourly_rate !== undefined ? data.hourly_rate : sql`hourly_rate`},
         currency = ${data.currency !== undefined ? data.currency : sql`currency`},
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = ${projectId}
+      WHERE id = ${projectId} AND user_id = ${user.id}
       RETURNING *
     `) as Project[]
     
+    if (result.length === 0) {
+        return { success: false, error: "Unauthorized or project not found" }
+    }
+
     revalidatePath("/settings")
     return { success: true, data: result[0] }
   } catch (error) {
@@ -118,8 +129,13 @@ export async function updateProject(projectId: number, data: {
 }
 
 export async function deleteProject(projectId: number) {
+  const user = await requireAuth()
+
   try {
-    await sql`DELETE FROM projects WHERE id = ${projectId}`
+    const result = await sql`DELETE FROM projects WHERE id = ${projectId} AND user_id = ${user.id} RETURNING id`
+    if (result.length === 0) {
+        return { success: false, error: "Unauthorized or project not found" }
+    }
     revalidatePath("/settings")
     return { success: true }
   } catch (error) {

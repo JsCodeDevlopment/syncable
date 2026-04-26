@@ -34,10 +34,10 @@ import { getDashboardInsights } from "../actions/dashboard-insights";
 export default async function DashboardPage() {
   const user = await requireAuth();
 
-  const summaryResult = await getDashboardSummary(user.id);
+  const summaryResult = await getDashboardSummary();
   const summary = summaryResult.success ? summaryResult.data : null;
 
-  const insightsResult = await getDashboardInsights(user.id);
+  const insightsResult = await getDashboardInsights();
   const insights = insightsResult.success ? insightsResult.data : null;
 
   const getGreeting = () => {
@@ -144,7 +144,7 @@ export default async function DashboardPage() {
                 </div>
               </CardHeader>
               <CardContent className="relative z-10">
-                <TimeTracker userId={user.id} />
+                <TimeTracker />
               </CardContent>
             </Card>
 
@@ -173,7 +173,7 @@ export default async function DashboardPage() {
               </CardHeader>
               <CardContent className="p-0 relative z-10">
                 <div className="px-6 pb-6 pt-2">
-                  <RecentEntries userId={user.id} limit={6} />
+                  <RecentEntries limit={6} />
                 </div>
               </CardContent>
             </Card>

@@ -57,6 +57,8 @@ import { toast } from "@/components/ui/use-toast";
 import { formatDateForDisplay } from "@/lib/db";
 import { formatDuration } from "@/lib/format-duration";
 import { formatCurrency } from "@/lib/format-currency";
+import { ReportPDF } from "@/components/reports/report-pdf";
+import dynamic from "next/dynamic";
 import {
   Activity,
   Banknote,
@@ -70,6 +72,7 @@ import {
   FileText,
   PieChart,
   Share,
+  Share2,
   Table as TableIcon,
   Timer,
   TrendingUp,
@@ -90,8 +93,14 @@ import {
 } from "../actions/reports";
 import { getProjects } from "../actions/projects";
 
+const PDFDownloadLink = dynamic(
+  () => import("@react-pdf/renderer").then((mod) => mod.PDFDownloadLink),
+  { ssr: false }
+);
+
+const formatDateBR = (date: Date) => date.toLocaleDateString("pt-BR");
+
 export default function ReportsPage() {
-  const [userId, setUserId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("daily");
   const [startDate, setStartDate] = useState<Date | undefined>(new Date());
   const [endDate, setEndDate] = useState<Date | undefined>(new Date());
@@ -111,6 +120,9 @@ export default function ReportsPage() {
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [reportName, setReportName] = useState("");
   const [reportCpfCnpj, setReportCpfCnpj] = useState("");
+  const [exportUserName, setExportUserName] = useState("");
+  const [exportUserDocument, setExportUserDocument] = useState("");
+  const [showEarningsInPdf, setShowEarningsInPdf] = useState(true);
   const [copiedLink, setCopiedLink] = useState(false);
   const [userData, setUserData] = useState<any>(null);
   const reportResultRef = useRef<HTMLDivElement>(null);
@@ -123,6 +135,11 @@ export default function ReportsPage() {
   const [globalReportData, setGlobalReportData] = useState<ReportData | null>(
     null,
   );
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   const [isFetchingGlobal, setIsFetchingGlobal] = useState(false);
 
   useEffect(() => {
@@ -130,8 +147,8 @@ export default function ReportsPage() {
       try {
         const user = await getCurrentUser();
         if (user) {
-          setUserId(user.id);
           setUserData(user);
+          setExportUserName(user.name);
         }
       } catch (error) {
         console.error("Error fetching user:", error);
@@ -143,20 +160,18 @@ export default function ReportsPage() {
 
   useEffect(() => {
     const loadProjects = async () => {
-      if (userId) {
         try {
-          const result = await getProjects(userId);
+          const result = await getProjects();
           if (result.success && result.data) {
             setProjects(result.data);
           }
         } catch (error) {
           console.error("Error loading projects:", error);
         }
-      }
     };
 
     loadProjects();
-  }, [userId]);
+  }, []);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -166,10 +181,9 @@ export default function ReportsPage() {
   };
 
   const fetchSavedReports = async () => {
-    if (!userId) return;
     setIsLoadingSavedReports(true);
     try {
-      const result = await getUserSharedReports(userId);
+      const result = await getUserSharedReports();
       if (result.success && result.data) {
         setSavedReports(result.data);
       }
@@ -181,16 +195,13 @@ export default function ReportsPage() {
   };
 
   useEffect(() => {
-    if (userId) {
-      fetchSavedReports();
-    }
-  }, [userId]);
+    fetchSavedReports();
+  }, []);
 
   const fetchGlobalAggregation = async () => {
-    if (!userId) return;
     setIsFetchingGlobal(true);
     try {
-      const result = await getGlobalReportAggregation(userId);
+      const result = await getGlobalReportAggregation();
       if (result.success && result.data) {
         setGlobalReportData(result.data);
       } else {
@@ -204,12 +215,12 @@ export default function ReportsPage() {
   };
 
   useEffect(() => {
-    if (userId && savedReports.length > 0) {
+    if (savedReports.length > 0) {
       fetchGlobalAggregation();
     } else {
       setGlobalReportData(null);
     }
-  }, [userId, savedReports.length]);
+  }, [savedReports.length]);
 
   // Update date range when period changes
   useEffect(() => {
@@ -268,7 +279,7 @@ export default function ReportsPage() {
   };
 
   const handleGenerateReport = async () => {
-    if (!userId || !startDate || !endDate) {
+    if (!startDate || !endDate) {
       toast({
         title: "Missing information",
         description: "Please select a date range for the report.",
@@ -282,7 +293,6 @@ export default function ReportsPage() {
 
     try {
       const result = await generateReport(
-        userId,
         startDate,
         endDate,
         activeTab,
@@ -458,7 +468,7 @@ export default function ReportsPage() {
   };
 
   const handleShareReport = async () => {
-    if (!userId || !startDate || !endDate || !reportData) {
+    if (!startDate || !endDate || !reportData) {
       toast({
         title: "Missing information",
         description: "Please generate a report first.",
@@ -480,7 +490,6 @@ export default function ReportsPage() {
 
     try {
       const result = await createSharedReport(
-        userId,
         activeTab as "daily" | "weekly" | "monthly",
         startDate,
         endDate,
@@ -521,9 +530,8 @@ export default function ReportsPage() {
   };
 
   const handleDeleteReport = async (reportId: number) => {
-    if (!userId) return;
     try {
-      const result = await deleteSharedReport(reportId, userId);
+      const result = await deleteSharedReport(reportId);
       if (result.success) {
         toast({
           title: "Report deleted",
@@ -548,9 +556,9 @@ export default function ReportsPage() {
   };
 
   const handleBulkDelete = async () => {
-    if (!userId || selectedReports.length === 0) return;
+    if (selectedReports.length === 0) return;
     try {
-      const result = await deleteSharedReports(selectedReports, userId);
+      const result = await deleteSharedReports(selectedReports);
       if (result.success) {
         toast({
           title: "Reports deleted",
@@ -922,22 +930,16 @@ export default function ReportsPage() {
                   </p>
                 </div>
               </div>
-              <div className="flex flex-wrap items-center gap-3 relative z-10">
-                {/* Re-implement Share Dialog here */}
-                <Dialog>
+              <div className="flex flex-wrap items-center gap-3">
+                  <Dialog>
                   <DialogTrigger asChild>
-                    <Button
-                      variant="default"
-                      size="lg"
-                      className="bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95 px-8 font-bold text-base h-12"
-                      onClick={() => {
-                        setShareLink("");
-                        setIsPublic(false);
-                      }}
-                    >
-                      <Share className="mr-2 h-5 w-5" />
-                      Share & Publish
-                    </Button>
+                  <Button
+                    variant="outline"
+                    className="h-11 rounded-xl font-semibold gap-2 border-primary/20 hover:bg-primary/5"
+                  >
+                    <Share2 className="h-4 w-4" />
+                    Share Report
+                  </Button>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
@@ -1112,24 +1114,52 @@ export default function ReportsPage() {
                     </DialogHeader>
                     <div className="grid grid-cols-2 gap-4 py-8">
                       <div className="relative group">
-                        <Button
-                          variant="outline"
-                          disabled
-                          className="h-32 w-full flex flex-col items-center justify-center gap-2 grayscale brightness-75 opacity-70 cursor-not-allowed"
-                        >
-                          <FileText className="h-10 w-10 text-red-500" />
-                          <span className="font-bold text-lg">
-                            PDF Document
-                          </span>
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-widest">
-                            Digital Sheet
-                          </span>
-                        </Button>
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <div className="bg-primary px-3 py-1 rounded-full text-[10px] text-black font-bold shadow-lg rotate-12 -translate-y-4">
-                            COMING SOON
-                          </div>
-                        </div>
+                        {isClient ? (
+                          <PDFDownloadLink
+                            document={
+                              <ReportPDF 
+                                data={reportData} 
+                                reportInfo={{
+                                  name: reportName || "Time Tracking Report",
+                                  type: reportType,
+                                  startDate: startDate!,
+                                  endDate: endDate!,
+                                  idNumber: reportCpfCnpj,
+                                  userName: exportUserName,
+                                  userDocument: exportUserDocument,
+                                  showEarnings: showEarningsInPdf
+                                }} 
+                              />
+                            }
+                            fileName={`Syncable_Report_${reportName || "General"}_${formatDateBR(new Date())}.pdf`}
+                            style={{ textDecoration: "none" }}
+                          >
+                            {({ loading }) => (
+                              <Button
+                                variant="outline"
+                                disabled={loading}
+                                className="h-32 w-full flex flex-col items-center justify-center gap-2 hover:border-blue-500 hover:bg-blue-500/5 transition-all group"
+                              >
+                                <FileText className={`h-10 w-10 text-red-500 ${loading ? "animate-pulse" : "group-hover:scale-110"} transition-transform`} />
+                                <span className="font-bold text-lg">
+                                  {loading ? "Preparing..." : "PDF Document"}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                                  {loading ? "Generating Sheet" : "Digital Sheet"}
+                                </span>
+                              </Button>
+                            )}
+                          </PDFDownloadLink>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            disabled
+                            className="h-32 w-full flex flex-col items-center justify-center gap-2 grayscale opacity-70"
+                          >
+                            <FileText className="h-10 w-10 text-red-500" />
+                            <span className="font-bold text-lg">PDF Document</span>
+                          </Button>
+                        )}
                       </div>
 
                       <Button
@@ -1147,6 +1177,42 @@ export default function ReportsPage() {
                         </span>
                       </Button>
                     </div>
+
+                    <div className="space-y-4 px-1 pb-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="export-name" className="text-xs font-bold uppercase text-muted-foreground">Professional Name (Optional)</Label>
+                        <Input 
+                          id="export-name"
+                          placeholder="Your full name"
+                          value={exportUserName}
+                          onChange={(e) => setExportUserName(e.target.value)}
+                          className="h-10 rounded-xl"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="export-doc" className="text-xs font-bold uppercase text-muted-foreground">Document (CPF/CNPJ - Optional)</Label>
+                        <Input 
+                          id="export-doc"
+                          placeholder="000.000.000-00"
+                          value={exportUserDocument}
+                          onChange={(e) => setExportUserDocument(e.target.value)}
+                          className="h-10 rounded-xl"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-xl border border-secondary">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="show-earnings" className="text-sm font-bold">Show Estimated Value</Label>
+                          <p className="text-[10px] text-muted-foreground">Include earnings and hourly rate in PDF</p>
+                        </div>
+                        <Switch 
+                          id="show-earnings"
+                          checked={showEarningsInPdf}
+                          onCheckedChange={setShowEarningsInPdf}
+                        />
+                      </div>
+                    </div>
+
                     <DialogFooter className="sm:justify-center border-t pt-4">
                       <p className="text-[10px] text-center text-muted-foreground italic max-w-[80%]">
                         Ao escolher PDF, utilize a função &quot;Salvar como

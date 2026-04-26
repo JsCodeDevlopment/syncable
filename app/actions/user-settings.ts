@@ -2,6 +2,7 @@
 
 import { sql } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { requireAuth } from "./auth";
 
 type Theme = "light" | "dark" | "system";
 
@@ -24,7 +25,9 @@ type DbUserSettings = UserSettings & {
   updated_at: Date;
 };
 
-export async function getUserSettings(userId: number) {
+export async function getUserSettings() {
+  const user = await requireAuth();
+  const userId = user.id;
   try {
     // Schema update: ensure hourly_rate and currency columns exist
     try {
@@ -125,9 +128,10 @@ export async function getUserSettings(userId: number) {
 }
 
 export async function updateUserSettings(
-  userId: number,
   settings: Partial<UserSettings>
 ) {
+  const user = await requireAuth();
+  const userId = user.id;
   try {
     // Schema update: ensure hourly_rate and currency columns exist
     try {

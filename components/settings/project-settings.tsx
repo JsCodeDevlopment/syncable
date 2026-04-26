@@ -40,11 +40,9 @@ import { cn } from "@/lib/utils";
 import { Briefcase, DollarSign, Edit2, Plus, Trash2, User } from "lucide-react";
 import { useEffect, useState } from "react";
 
-type ProjectSettingsProps = {
-  userId: number;
-};
+type ProjectSettingsProps = {};
 
-export function ProjectSettings({ userId }: ProjectSettingsProps) {
+export function ProjectSettings({}: ProjectSettingsProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -65,7 +63,7 @@ export function ProjectSettings({ userId }: ProjectSettingsProps) {
   const loadProjects = async () => {
     setIsLoading(true);
     try {
-      const result = await getProjects(userId);
+      const result = await getProjects();
       if (result.success && result.data) {
         setProjects(result.data);
       } else {
@@ -84,7 +82,7 @@ export function ProjectSettings({ userId }: ProjectSettingsProps) {
 
   useEffect(() => {
     loadProjects();
-  }, [userId]);
+  }, []);
 
   const handleOpenDialog = (project?: Project) => {
     if (project) {
@@ -127,7 +125,7 @@ export function ProjectSettings({ userId }: ProjectSettingsProps) {
       if (editingProject) {
         result = await updateProject(editingProject.id, data);
       } else {
-        result = await createProject(userId, data);
+        result = await createProject(data);
       }
 
       if (result.success) {
