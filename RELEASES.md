@@ -8,6 +8,16 @@ Este documento registra todas as atualizações, melhorias e correções aplicad
 
 - [ ] Estamos pensando...
 
+## [v2.0.1] - 2026-05-06
+
+### 🔗 Public Report Access (Fix)
+
+- **Acesso Público a Relatórios:**
+  - Corrigido o problema que impedia pessoas deslogadas de visualizarem relatórios compartilhados.
+  - Acesso agora é 100% público para qualquer pessoa com o link válido e token ativo.
+- **Bypass de Autenticação Inteligente:**
+  - Refatoração da ação `getUserSettings` para permitir o carregamento de preferências globais (moeda, taxas) sem exigir login, desde que o ID do proprietário seja validado internamente.
+
 ## [v2.0.0] - 2026-04-26
 
 ### 🛡️ Core Security & Privacy Overhaul (Major Update)
