@@ -25,9 +25,16 @@ type DbUserSettings = UserSettings & {
   updated_at: Date;
 };
 
-export async function getUserSettings() {
-  const user = await requireAuth();
-  const userId = user.id;
+export async function getUserSettings(providedUserId?: number) {
+  let targetUserId: number;
+
+  if (providedUserId) {
+    targetUserId = providedUserId;
+  } else {
+    const user = await requireAuth();
+    targetUserId = user.id;
+  }
+
   try {
     // Schema update: ensure hourly_rate and currency columns exist
     try {
@@ -50,7 +57,7 @@ export async function getUserSettings() {
         hourly_rate,
         currency
       FROM user_settings
-      WHERE user_id = ${userId}
+      WHERE user_id = ${targetUserId}
     `) as DbUserSettings[];
 
     if (!result || result.length === 0) {
@@ -81,7 +88,7 @@ export async function getUserSettings() {
           hourly_rate,
           currency
         ) VALUES (
-          ${userId},
+          ${targetUserId},
           ${defaultSettings.working_hours},
           ${defaultSettings.timezone},
           ${defaultSettings.auto_detect_breaks},
